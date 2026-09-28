@@ -18,6 +18,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="fusee-logo.jpg">
 
+  <!-- Firebase Web SDKs (Compat version for direct browser script inclusion) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
   <!-- Custom Theme & Glassmorphism Design System -->
   <style>
     :root {
@@ -442,6 +447,12 @@
         </div>
 
         <div class="form-group">
+          <label for="reg-email">Student AdDU Email</label>
+          <input type="email" id="reg-email" placeholder="e.g., jcruz@addu.edu.ph" required>
+          <span id="email-error" class="error-msg">Please enter a valid email ending in @addu.edu.ph</span>
+        </div>
+
+        <div class="form-group">
           <label for="reg-year">Year Level</label>
           <select id="reg-year" required>
             <option value="" disabled selected>Select Year Level</option>
@@ -460,7 +471,7 @@
           <span id="password-error" class="error-msg">Password must be at least 6 characters.</span>
         </div>
 
-        <button type="submit" id="signup-submit-btn" class="btn btn-primary">Sign Up</button>
+        <button type="submit" class="btn btn-primary">Sign Up</button>
       </form>
 
       <p class="auth-toggle-text">
@@ -472,14 +483,14 @@
     <section id="login-view" class="view-container" style="display: none;">
       <div class="welcome-banner">
         <h2>Welcome Back</h2>
-        <p>Enter your Full Name and password to log in.</p>
+        <p>Enter your AdDU email and password to log in.</p>
       </div>
 
       <form id="login-form" novalidate>
         <div class="form-group">
-          <label for="login-name">Full Name</label>
-          <input type="text" id="login-name" placeholder="e.g., Juan Cruz" required>
-          <span id="login-name-error" class="error-msg">Please enter your full name.</span>
+          <label for="login-email">Student AdDU Email</label>
+          <input type="email" id="login-email" placeholder="e.g., jcruz@addu.edu.ph" required>
+          <span id="login-email-error" class="error-msg">Please enter a valid email ending in @addu.edu.ph</span>
         </div>
 
         <div class="form-group">
@@ -488,7 +499,7 @@
           <span id="login-password-error" class="error-msg">Password must be at least 6 characters.</span>
         </div>
 
-        <button type="submit" id="login-submit-btn" class="btn btn-primary">Log In</button>
+        <button type="submit" class="btn btn-primary">Log In</button>
       </form>
 
       <p class="auth-toggle-text">
@@ -526,335 +537,346 @@
     </section>
   </main>
 
-  <!-- Live Firebase SDK Integration (v10.8.0) -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { 
-      getAuth, 
-      createUserWithEmailAndPassword, 
-      signInWithEmailAndPassword, 
-      signOut, 
-      onAuthStateChanged 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { 
-      getDatabase, 
-      ref, 
-      set, 
-      get, 
-      push, 
-      update, 
-      remove, 
-      onValue 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-    // Firebase Configuration
+  <script>
+    // Firebase Configuration Credentials
     const firebaseConfig = {
-      apiKey: "AIzaSyAdUDRKUqEamY_LscdAeSNLhBZWs-EgNvU",
-      authDomain: "basil--n-bowl-kiosk-system.firebaseapp.com",
-      databaseURL: "https://basil--n-bowl-kiosk-system-default-rtdb.firebaseio.com",
-      projectId: "basil--n-bowl-kiosk-system",
-      storageBucket: "basil--n-bowl-kiosk-system.firebasestorage.app",
-      messagingSenderId: "282044269599",
-      appId: "1:282044269599:web:362b2b374a2720857a012a",
-      measurementId: "G-Z70XNW3FXQ"
+      apiKey: "AIzaSyBr0Pm-3l94mNhT6NSkVShQqAQOREvRP_M",
+      authDomain: "digital-logbook-f3800.firebaseapp.com",
+      projectId: "digital-logbook-f3800",
+      storageBucket: "digital-logbook-f3800.firebasestorage.app",
+      messagingSenderId: "108147766041",
+      appId: "1:108147766041:web:ebd50d55590c3aa6ca7e28",
+      measurementId: "G-6DEVWDXEC9"
     };
 
-    // Initialize Firebase Services
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
-
-    // DOM Elements
-    const signupView = document.getElementById('signup-view');
-    const loginView = document.getElementById('login-view');
-    const dashView = document.getElementById('dashboard-view');
-    
-    const signupForm = document.getElementById('signup-form');
-    const loginForm = document.getElementById('login-form');
-
-    const goToLogin = document.getElementById('go-to-login');
-    const goToSignup = document.getElementById('go-to-signup');
-    const logoutBtn = document.getElementById('logout-btn');
-
-    const userGreeting = document.getElementById('user-greeting');
-    const userInfo = document.getElementById('user-info');
-    const userInitials = document.getElementById('user-initials');
-    
-    const statusIndicator = document.getElementById('status-indicator');
-    const statusText = document.getElementById('status-text');
-    const actionBtn = document.getElementById('action-btn');
-
-    // Input elements
-    const regNameInput = document.getElementById('reg-name');
-    const regYearSelect = document.getElementById('reg-year');
-    const regPassInput = document.getElementById('reg-password');
-
-    // Error elements
-    const nameErr = document.getElementById('name-error');
-    const yearErr = document.getElementById('year-error');
-    const passErr = document.getElementById('password-error');
-
-    const loginNameInput = document.getElementById('login-name');
-    const loginPassInput = document.getElementById('login-password');
-    const loginNameErr = document.getElementById('login-name-error');
-    const loginPassErr = document.getElementById('login-password-error');
-
-    let currentUserData = null;
-    let activeLogId = null;
-    let unsubscribeActiveCheckin = null;
-
-    // Helper: Map user name to a synthetic internal handle for Firebase Auth
-    function getSyntheticEmail(name) {
-      const sanitized = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return `${sanitized || 'student'}@fusee.lab`;
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
     }
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-    function clearErrors() {
-      [regNameInput, regYearSelect, regPassInput, loginNameInput, loginPassInput].forEach(i => i.classList.remove('input-error'));
+    document.addEventListener('DOMContentLoaded', () => {
+      const signupView = document.getElementById('signup-view');
+      const loginView = document.getElementById('login-view');
+      const dashView = document.getElementById('dashboard-view');
       
-      loginNameErr.textContent = 'Please enter your full name.';
-      loginPassErr.textContent = 'Password must be at least 6 characters.';
+      const signupForm = document.getElementById('signup-form');
+      const loginForm = document.getElementById('login-form');
 
-      [nameErr, yearErr, passErr, loginNameErr, loginPassErr].forEach(e => e.style.display = 'none');
-    }
+      const goToLogin = document.getElementById('go-to-login');
+      const goToSignup = document.getElementById('go-to-signup');
+      const logoutBtn = document.getElementById('logout-btn');
 
-    // Toggle Forms
-    goToLogin.addEventListener('click', () => {
-      clearErrors();
-      signupView.style.display = 'none';
-      loginView.style.display = 'block';
-    });
+      const userGreeting = document.getElementById('user-greeting');
+      const userInfo = document.getElementById('user-info');
+      const userInitials = document.getElementById('user-initials');
+      
+      const statusIndicator = document.getElementById('status-indicator');
+      const statusText = document.getElementById('status-text');
+      const statusTime = document.getElementById('status-time');
+      const actionBtn = document.getElementById('action-btn');
 
-    goToSignup.addEventListener('click', () => {
-      clearErrors();
-      loginView.style.display = 'none';
-      signupView.style.display = 'block';
-    });
+      // Sign Up Input elements
+      const regNameInput = document.getElementById('reg-name');
+      const regEmailInput = document.getElementById('reg-email');
+      const regYearSelect = document.getElementById('reg-year');
+      const regPassInput = document.getElementById('reg-password');
 
-    // Handle Sign Up via Firebase Auth & Database
-    signupForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearErrors();
+      // Sign Up Error elements
+      const nameErr = document.getElementById('name-error');
+      const emailErr = document.getElementById('email-error');
+      const yearErr = document.getElementById('year-error');
+      const passErr = document.getElementById('password-error');
 
-      let isValid = true;
-      const name = regNameInput.value.trim();
-      const year = regYearSelect.value;
-      const password = regPassInput.value;
+      // Log In Input & Error elements
+      const loginEmailInput = document.getElementById('login-email');
+      const loginPassInput = document.getElementById('login-password');
+      const loginEmailErr = document.getElementById('login-email-error');
+      const loginPassErr = document.getElementById('login-password-error');
 
-      if (!name) {
-        regNameInput.classList.add('input-error');
-        nameErr.style.display = 'block';
-        isValid = false;
+      let isCheckedIn = false;
+      let currentLogId = null;
+      let currentUserProfile = null;
+      let unsubscribeLogListener = null;
+
+      function clearErrors() {
+        [regNameInput, regEmailInput, regYearSelect, regPassInput, loginEmailInput, loginPassInput].forEach(i => i.classList.remove('input-error'));
+        
+        emailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+        loginEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+        loginPassErr.textContent = 'Password must be at least 6 characters.';
+
+        [nameErr, emailErr, yearErr, passErr, loginEmailErr, loginPassErr].forEach(e => e.style.display = 'none');
       }
 
-      if (!year) {
-        regYearSelect.classList.add('input-error');
-        yearErr.style.display = 'block';
-        isValid = false;
-      }
+      // Switch between Auth Forms
+      goToLogin.addEventListener('click', () => {
+        clearErrors();
+        signupView.style.display = 'none';
+        loginView.style.display = 'block';
+      });
 
-      if (!password || password.length < 6) {
-        regPassInput.classList.add('input-error');
-        passErr.style.display = 'block';
-        isValid = false;
-      }
-
-      if (!isValid) return;
-
-      const submitBtn = document.getElementById('signup-submit-btn');
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Creating Account...';
-
-      const syntheticEmail = getSyntheticEmail(name);
-
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, syntheticEmail, password);
-        const user = userCredential.user;
-
-        const profileData = {
-          fullName: name,
-          yearLevel: year,
-          createdAt: new Date().toISOString()
-        };
-
-        // Write user profile to Realtime Database
-        await set(ref(db, `users/${user.uid}`), profileData);
-      } catch (error) {
-        regNameInput.classList.add('input-error');
-        nameErr.textContent = error.code === 'auth/email-already-in-use' 
-          ? 'An account with this name already exists. Please log in.' 
-          : error.message;
-        nameErr.style.display = 'block';
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Sign Up';
-      }
-    });
-
-    // Handle Log In via Firebase Auth
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearErrors();
-
-      let isValid = true;
-      const name = loginNameInput.value.trim();
-      const password = loginPassInput.value;
-
-      if (!name) {
-        loginNameInput.classList.add('input-error');
-        loginNameErr.style.display = 'block';
-        isValid = false;
-      }
-
-      if (!password) {
-        loginPassInput.classList.add('input-error');
-        loginPassErr.textContent = 'Please enter your password.';
-        loginPassErr.style.display = 'block';
-        isValid = false;
-      }
-
-      if (!isValid) return;
-
-      const submitBtn = document.getElementById('login-submit-btn');
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Logging in...';
-
-      const syntheticEmail = getSyntheticEmail(name);
-
-      try {
-        await signInWithEmailAndPassword(auth, syntheticEmail, password);
-      } catch (error) {
-        loginPassInput.classList.add('input-error');
-        loginPassErr.textContent = 'Invalid account name or password.';
-        loginPassErr.style.display = 'block';
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Log In';
-      }
-    });
-
-    // Handle Log Out
-    logoutBtn.addEventListener('click', async () => {
-      if (unsubscribeActiveCheckin) {
-        unsubscribeActiveCheckin();
-        unsubscribeActiveCheckin = null;
-      }
-      await signOut(auth);
-    });
-
-    // Real-time Authentication Observer
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // Fetch user profile metadata from Realtime Database
-        const userSnap = await get(ref(db, `users/${user.uid}`));
-        if (userSnap.exists()) {
-          currentUserData = userSnap.val();
-        } else {
-          currentUserData = { fullName: 'Student', yearLevel: 'Member' };
-        }
-        showDashboard(user, currentUserData);
-      } else {
-        currentUserData = null;
-        activeLogId = null;
-        dashView.style.display = 'none';
+      goToSignup.addEventListener('click', () => {
+        clearErrors();
         loginView.style.display = 'none';
         signupView.style.display = 'block';
-        clearErrors();
-      }
-    });
-
-    function showDashboard(user, userData) {
-      signupView.style.display = 'none';
-      loginView.style.display = 'none';
-      dashView.style.display = 'block';
-
-      const firstName = (userData.fullName || 'Student').split(' ')[0];
-      userGreeting.textContent = `Hello, ${firstName}!`;
-      userInfo.textContent = `${userData.yearLevel || 'Student'} • FUSEE`;
-
-      const nameParts = (userData.fullName || 'FE').split(' ').filter(p => p.length > 0);
-      let initials = 'FE';
-      if (nameParts.length >= 2) {
-        initials = `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`;
-      } else if (nameParts.length === 1) {
-        initials = nameParts[0].substring(0, 2);
-      }
-      userInitials.textContent = initials.toUpperCase();
-
-      // Listen to live check-in status from Realtime Database
-      const activeRef = ref(db, `active_checkins/${user.uid}`);
-      if (unsubscribeActiveCheckin) unsubscribeActiveCheckin();
-      
-      unsubscribeActiveCheckin = onValue(activeRef, (snapshot) => {
-        activeLogId = snapshot.val();
-        updateStatusUI(!!activeLogId);
       });
-    }
 
-    // Toggle Real-time Check-In / Check-Out
-    actionBtn.addEventListener('click', async () => {
-      const user = auth.currentUser;
-      if (!user || !currentUserData) return;
-
-      actionBtn.disabled = true;
-
-      try {
-        if (!activeLogId) {
-          // CHECK IN
-          const now = new Date();
-          const todayISO = now.toISOString().slice(0, 10);
-          const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-          const logsRef = ref(db, 'logs');
-          const newLogRef = push(logsRef);
-          const newLogId = newLogRef.key;
-
-          const newLog = {
-            id: newLogId,
-            uid: user.uid,
-            fullName: currentUserData.fullName,
-            yearLevel: currentUserData.yearLevel,
-            date: todayISO,
-            checkInTime: timeString,
-            checkOutTime: '—',
-            status: 'IN',
-            timestamp: Date.now()
-          };
-
-          await set(newLogRef, newLog);
-          await set(ref(db, `active_checkins/${user.uid}`), newLogId);
+      // Firebase Auth Observer
+      auth.onAuthStateChanged(async (user) => {
+        if (user) {
+          try {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (userDoc.exists) {
+              currentUserProfile = userDoc.data();
+            } else {
+              currentUserProfile = {
+                fullName: user.displayName || 'Student',
+                email: user.email,
+                yearLevel: '1st Year'
+              };
+            }
+            showDashboard(currentUserProfile);
+            listenToAttendanceStatus(user.uid);
+          } catch (err) {
+            console.error("Error fetching user profile:", err);
+            currentUserProfile = {
+              fullName: user.displayName || 'Student',
+              email: user.email,
+              yearLevel: '1st Year'
+            };
+            showDashboard(currentUserProfile);
+            listenToAttendanceStatus(user.uid);
+          }
         } else {
-          // CHECK OUT
-          const now = new Date();
-          const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-          await update(ref(db, `logs/${activeLogId}`), {
-            status: 'OUT',
-            checkOutTime: timeString
-          });
-          await remove(ref(db, `active_checkins/${user.uid}`));
+          if (unsubscribeLogListener) {
+            unsubscribeLogListener();
+            unsubscribeLogListener = null;
+          }
+          currentUserProfile = null;
+          currentLogId = null;
+          isCheckedIn = false;
+          dashView.style.display = 'none';
+          signupView.style.display = 'none';
+          loginView.style.display = 'block';
         }
-      } catch (err) {
-        console.error("Error toggling lab status:", err);
-      } finally {
+      });
+
+      function listenToAttendanceStatus(uid) {
+        if (unsubscribeLogListener) unsubscribeLogListener();
+
+        unsubscribeLogListener = db.collection('attendance_logs')
+          .where('userId', '==', uid)
+          .orderBy('createdAt', 'desc')
+          .limit(1)
+          .onSnapshot((snapshot) => {
+            if (!snapshot.empty) {
+              const doc = snapshot.docs[0];
+              const logData = doc.data();
+              currentLogId = doc.id;
+              if (logData.status === 'IN') {
+                isCheckedIn = true;
+                if (statusTime) statusTime.textContent = `Checked in at ${logData.checkInTime || ''}`;
+              } else {
+                isCheckedIn = false;
+                if (statusTime) statusTime.textContent = `Checked out at ${logData.checkOutTime || ''}`;
+              }
+            } else {
+              isCheckedIn = false;
+              currentLogId = null;
+              if (statusTime) statusTime.textContent = 'Tap below when entering or leaving';
+            }
+            updateStatusUI();
+          }, (error) => {
+            console.error("Error listening to attendance log:", error);
+            updateStatusUI();
+          });
+      }
+
+      // Handle Sign Up
+      signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        let isValid = true;
+        const name = regNameInput.value.trim();
+        const email = regEmailInput.value.trim().toLowerCase();
+        const year = regYearSelect.value;
+        const password = regPassInput.value;
+
+        if (!name) {
+          regNameInput.classList.add('input-error');
+          nameErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!email || !email.endsWith('@addu.edu.ph')) {
+          regEmailInput.classList.add('input-error');
+          emailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+          emailErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!year) {
+          regYearSelect.classList.add('input-error');
+          yearErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!password || password.length < 6) {
+          regPassInput.classList.add('input-error');
+          passErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!isValid) return;
+
+        const submitBtn = signupForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating Account...';
+
+        try {
+          const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+          await userCredential.user.updateProfile({ displayName: name });
+
+          await db.collection('users').doc(userCredential.user.uid).set({
+            fullName: name,
+            email: email,
+            yearLevel: year,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+
+          signupForm.reset();
+        } catch (error) {
+          regEmailInput.classList.add('input-error');
+          emailErr.textContent = error.message || 'Error creating account. Please try again.';
+          emailErr.style.display = 'block';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Sign Up';
+        }
+      });
+
+      // Handle Log In
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        let isValid = true;
+        const email = loginEmailInput.value.trim().toLowerCase();
+        const password = loginPassInput.value;
+
+        if (!email || !email.endsWith('@addu.edu.ph')) {
+          loginEmailInput.classList.add('input-error');
+          loginEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+          loginEmailErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!password) {
+          loginPassInput.classList.add('input-error');
+          loginPassErr.textContent = 'Please enter your password.';
+          loginPassErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!isValid) return;
+
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Logging In...';
+
+        try {
+          await auth.signInWithEmailAndPassword(email, password);
+          loginForm.reset();
+        } catch (error) {
+          loginPassInput.classList.add('input-error');
+          loginPassErr.textContent = 'Invalid email or password. Please try again.';
+          loginPassErr.style.display = 'block';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Log In';
+        }
+      });
+
+      // Handle Log Out
+      logoutBtn.addEventListener('click', () => {
+        auth.signOut();
+      });
+
+      function showDashboard(userData) {
+        signupView.style.display = 'none';
+        loginView.style.display = 'none';
+        dashView.style.display = 'block';
+
+        const firstName = (userData.fullName || 'Student').split(' ')[0];
+        userGreeting.textContent = `Hello, ${firstName}!`;
+        userInfo.textContent = `${userData.yearLevel || 'Student'} • FUSEE`;
+
+        const nameParts = (userData.fullName || 'FE').split(' ').filter(p => p.length > 0);
+        let initials = 'FE';
+        if (nameParts.length >= 2) {
+          initials = `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`;
+        } else if (nameParts.length === 1) {
+          initials = nameParts[0].substring(0, 2);
+        }
+        userInitials.textContent = initials.toUpperCase();
+      }
+
+      // Check In / Check Out Action
+      actionBtn.addEventListener('click', async () => {
+        const user = auth.currentUser;
+        if (!user || !currentUserProfile) return;
+
+        actionBtn.disabled = true;
+        const now = new Date();
+        const todayISO = now.toISOString().slice(0, 10);
+        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        try {
+          if (!isCheckedIn) {
+            await db.collection('attendance_logs').add({
+              userId: user.uid,
+              fullName: currentUserProfile.fullName || 'Student',
+              email: user.email,
+              yearLevel: currentUserProfile.yearLevel || '1st Year',
+              date: todayISO,
+              checkInTime: timeString,
+              checkOutTime: null,
+              status: 'IN',
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          } else if (currentLogId) {
+            await db.collection('attendance_logs').doc(currentLogId).update({
+              checkOutTime: timeString,
+              status: 'OUT',
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        } catch (err) {
+          console.error("Error updating check-in status:", err);
+          alert("Failed to update status. Please try again.");
+        } finally {
+          actionBtn.disabled = false;
+        }
+      });
+
+      function updateStatusUI() {
         actionBtn.disabled = false;
+        if (isCheckedIn) {
+          statusIndicator.className = 'status-pill status-in';
+          statusText.textContent = 'CHECKED IN';
+          actionBtn.textContent = 'CHECK OUT OF LAB';
+          actionBtn.className = 'btn btn-checkout';
+        } else {
+          statusIndicator.className = 'status-pill status-out';
+          statusText.textContent = 'CHECKED OUT';
+          actionBtn.textContent = 'CHECK IN TO LAB';
+          actionBtn.className = 'btn btn-checkin';
+        }
       }
     });
-
-    function updateStatusUI(isCheckedIn) {
-      actionBtn.disabled = false;
-      if (isCheckedIn) {
-        statusIndicator.className = 'status-pill status-in';
-        statusText.textContent = 'CHECKED IN';
-        actionBtn.textContent = 'CHECK OUT OF LAB';
-        actionBtn.className = 'btn btn-checkout';
-      } else {
-        statusIndicator.className = 'status-pill status-out';
-        statusText.textContent = 'CHECKED OUT';
-        actionBtn.textContent = 'CHECK IN TO LAB';
-        actionBtn.className = 'btn btn-checkin';
-      }
-    }
   </script>
 </body>
 </html>
