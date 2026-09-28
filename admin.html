@@ -247,12 +247,6 @@
       font-weight: 800;
     }
 
-    .email-text {
-      font-size: 0.78rem;
-      color: var(--text-secondary);
-      font-weight: 500;
-    }
-
     /* Status Pills */
     .badge-status {
       display: inline-flex;
@@ -383,11 +377,11 @@
       </div>
     </section>
 
-    <!-- Main Table Panel -->
+    <!-- Main Dashboard Section -->
     <section class="panel-card">
       <div class="toolbar">
         <div class="search-filter-group">
-          <input type="text" id="search-input" class="search-input" placeholder="Search by student name or email...">
+          <input type="text" id="search-input" class="search-input" placeholder="Search by student name...">
           
           <input type="date" id="date-filter" class="date-input" title="Filter logs by date">
           <button id="all-dates-btn" class="btn btn-secondary" style="padding: 10px 14px; font-size: 0.8rem;">All Dates</button>
@@ -441,9 +435,9 @@
       remove 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // Firebase Configuration - Replace apiKey with your valid Web API Key from Firebase Console
+    // Firebase Configuration
     const firebaseConfig = {
-      apiKey: "YOUR_VALID_API_KEY_HERE",
+      apiKey: "AIzaSyAdUDRKUqEamY_LscdAeSNLhBZWs-EgNvU",
       authDomain: "basil--n-bowl-kiosk-system.firebaseapp.com",
       databaseURL: "https://basil--n-bowl-kiosk-system-default-rtdb.firebaseio.com",
       projectId: "basil--n-bowl-kiosk-system",
@@ -512,7 +506,7 @@
 
       // Filter calculation
       const filtered = allLogs.filter(log => {
-        const matchesQuery = (log.fullName || '').toLowerCase().includes(query) || (log.email || '').toLowerCase().includes(query);
+        const matchesQuery = (log.fullName || '').toLowerCase().includes(query);
         const matchesDate = !selectedDate || log.date === selectedDate;
         const matchesStatus = selectedStatus === 'ALL' || log.status === selectedStatus;
         const matchesYear = selectedYear === 'ALL' || log.yearLevel === selectedYear;
@@ -560,7 +554,6 @@
               <div class="mini-avatar">${initials}</div>
               <div>
                 <div>${log.fullName}</div>
-                <div class="email-text">${log.email}</div>
               </div>
             </div>
           </td>
@@ -628,10 +621,10 @@
         return;
       }
 
-      let csvContent = "data:text/csv;charset=utf-8,Date,Full Name,Email,Year Level,Check-In Time,Check-Out Time,Status\n";
+      let csvContent = "data:text/csv;charset=utf-8,Date,Full Name,Year Level,Check-In Time,Check-Out Time,Status\n";
       
       allLogs.forEach(l => {
-        csvContent += `"${l.date || ''}","${l.fullName || ''}","${l.email || ''}","${l.yearLevel || ''}","${l.checkInTime || ''}","${l.checkOutTime || '—'}","${l.status || ''}"\n`;
+        csvContent += `"${l.date || ''}","${l.fullName || ''}","${l.yearLevel || ''}","${l.checkInTime || ''}","${l.checkOutTime || '—'}","${l.status || ''}"\n`;
       });
 
       const encodedUri = encodeURI(csvContent);

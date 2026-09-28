@@ -442,12 +442,6 @@
         </div>
 
         <div class="form-group">
-          <label for="reg-email">Student AdDU Email</label>
-          <input type="email" id="reg-email" placeholder="e.g., jcruz@addu.edu.ph" required>
-          <span id="email-error" class="error-msg">Please enter a valid email ending in @addu.edu.ph</span>
-        </div>
-
-        <div class="form-group">
           <label for="reg-year">Year Level</label>
           <select id="reg-year" required>
             <option value="" disabled selected>Select Year Level</option>
@@ -478,14 +472,14 @@
     <section id="login-view" class="view-container" style="display: none;">
       <div class="welcome-banner">
         <h2>Welcome Back</h2>
-        <p>Enter your AdDU email and password to log in.</p>
+        <p>Enter your Full Name and Password to log in.</p>
       </div>
 
       <form id="login-form" novalidate>
         <div class="form-group">
-          <label for="login-email">Student AdDU Email</label>
-          <input type="email" id="login-email" placeholder="e.g., jcruz@addu.edu.ph" required>
-          <span id="login-email-error" class="error-msg">Please enter a valid email ending in @addu.edu.ph</span>
+          <label for="login-name">Full Name</label>
+          <input type="text" id="login-name" placeholder="e.g., Juan Cruz" required>
+          <span id="login-name-error" class="error-msg">Please enter your full name.</span>
         </div>
 
         <div class="form-group">
@@ -553,9 +547,9 @@
       onValue 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // Firebase Configuration - Replace apiKey with your valid Web API Key from Firebase Console
+    // Firebase Configuration
     const firebaseConfig = {
-      apiKey: "YOUR_VALID_API_KEY_HERE",
+      apiKey: "AIzaSyAdUDRKUqEamY_LscdAeSNLhBZWs-EgNvU",
       authDomain: "basil--n-bowl-kiosk-system.firebaseapp.com",
       databaseURL: "https://basil--n-bowl-kiosk-system-default-rtdb.firebaseio.com",
       projectId: "basil--n-bowl-kiosk-system",
@@ -592,33 +586,37 @@
 
     // Input elements
     const regNameInput = document.getElementById('reg-name');
-    const regEmailInput = document.getElementById('reg-email');
     const regYearSelect = document.getElementById('reg-year');
     const regPassInput = document.getElementById('reg-password');
 
     // Error elements
     const nameErr = document.getElementById('name-error');
-    const emailErr = document.getElementById('email-error');
     const yearErr = document.getElementById('year-error');
     const passErr = document.getElementById('password-error');
 
-    const loginEmailInput = document.getElementById('login-email');
+    const loginNameInput = document.getElementById('login-name');
     const loginPassInput = document.getElementById('login-password');
-    const loginEmailErr = document.getElementById('login-email-error');
+    const loginNameErr = document.getElementById('login-name-error');
     const loginPassErr = document.getElementById('login-password-error');
 
     let currentUserData = null;
     let activeLogId = null;
     let unsubscribeActiveCheckin = null;
 
+    // Helper: Convert Full Name into internal synthetic auth email identifier
+    function nameToAuthEmail(fullName) {
+      const sanitized = fullName.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      return `${sanitized}@fuseelab.local`;
+    }
+
     function clearErrors() {
-      [regNameInput, regEmailInput, regYearSelect, regPassInput, loginEmailInput, loginPassInput].forEach(i => i.classList.remove('input-error'));
+      [regNameInput, regYearSelect, regPassInput, loginNameInput, loginPassInput].forEach(i => i.classList.remove('input-error'));
       
-      emailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
-      loginEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+      nameErr.textContent = 'Please enter your full name.';
+      loginNameErr.textContent = 'Please enter your full name.';
       loginPassErr.textContent = 'Password must be at least 6 characters.';
 
-      [nameErr, emailErr, yearErr, passErr, loginEmailErr, loginPassErr].forEach(e => e.style.display = 'none');
+      [nameErr, yearErr, passErr, loginNameErr, loginPassErr].forEach(e => e.style.display = 'none');
     }
 
     // Toggle Forms
@@ -634,27 +632,19 @@
       signupView.style.display = 'block';
     });
 
-    // Handle Sign Up via Firebase Auth & Database
+    // Handle Sign Up via Full Name & Password
     signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearErrors();
 
       let isValid = true;
       const name = regNameInput.value.trim();
-      const email = regEmailInput.value.trim().toLowerCase();
       const year = regYearSelect.value;
       const password = regPassInput.value;
 
       if (!name) {
         regNameInput.classList.add('input-error');
         nameErr.style.display = 'block';
-        isValid = false;
-      }
-
-      if (!email || !email.endsWith('@addu.edu.ph')) {
-        regEmailInput.classList.add('input-error');
-        emailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
-        emailErr.style.display = 'block';
         isValid = false;
       }
 
@@ -677,12 +667,12 @@
       submitBtn.textContent = 'Creating Account...';
 
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const authEmail = nameToAuthEmail(name);
+        const userCredential = await createUserWithEmailAndPassword(auth, authEmail, password);
         const user = userCredential.user;
 
         const profileData = {
           fullName: name,
-          email: email,
           yearLevel: year,
           createdAt: new Date().toISOString()
         };
@@ -690,30 +680,29 @@
         // Write user profile to Realtime Database
         await set(ref(db, `users/${user.uid}`), profileData);
       } catch (error) {
-        regEmailInput.classList.add('input-error');
-        emailErr.textContent = error.code === 'auth/email-already-in-use' 
-          ? 'Account already exists. Please log in instead.' 
+        regNameInput.classList.add('input-error');
+        nameErr.textContent = error.code === 'auth/email-already-in-use' 
+          ? 'An account with this full name already exists. Please log in instead.' 
           : error.message;
-        emailErr.style.display = 'block';
+        nameErr.style.display = 'block';
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Sign Up';
       }
     });
 
-    // Handle Log In via Firebase Auth
+    // Handle Log In via Full Name & Password
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearErrors();
 
       let isValid = true;
-      const email = loginEmailInput.value.trim().toLowerCase();
+      const name = loginNameInput.value.trim();
       const password = loginPassInput.value;
 
-      if (!email || !email.endsWith('@addu.edu.ph')) {
-        loginEmailInput.classList.add('input-error');
-        loginEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
-        loginEmailErr.style.display = 'block';
+      if (!name) {
+        loginNameInput.classList.add('input-error');
+        loginNameErr.style.display = 'block';
         isValid = false;
       }
 
@@ -731,10 +720,11 @@
       submitBtn.textContent = 'Logging in...';
 
       try {
-        await signInWithEmailAndPassword(auth, email, password);
+        const authEmail = nameToAuthEmail(name);
+        await signInWithEmailAndPassword(auth, authEmail, password);
       } catch (error) {
         loginPassInput.classList.add('input-error');
-        loginPassErr.textContent = 'Invalid credentials or account does not exist.';
+        loginPassErr.textContent = 'Invalid full name or password.';
         loginPassErr.style.display = 'block';
       } finally {
         submitBtn.disabled = false;
@@ -759,7 +749,7 @@
         if (userSnap.exists()) {
           currentUserData = userSnap.val();
         } else {
-          currentUserData = { fullName: user.email.split('@')[0], email: user.email, yearLevel: 'Member' };
+          currentUserData = { fullName: 'Student', yearLevel: 'Member' };
         }
         showDashboard(user, currentUserData);
       } else {
@@ -822,7 +812,6 @@
             id: newLogId,
             uid: user.uid,
             fullName: currentUserData.fullName,
-            email: currentUserData.email,
             yearLevel: currentUserData.yearLevel,
             date: todayISO,
             checkInTime: timeString,
