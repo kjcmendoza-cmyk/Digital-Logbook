@@ -472,14 +472,14 @@
     <section id="login-view" class="view-container" style="display: none;">
       <div class="welcome-banner">
         <h2>Welcome Back</h2>
-        <p>Enter your Full Name and Password to log in.</p>
+        <p>Enter your full name and password to log in.</p>
       </div>
 
       <form id="login-form" novalidate>
         <div class="form-group">
           <label for="login-name">Full Name</label>
           <input type="text" id="login-name" placeholder="e.g., Juan Cruz" required>
-          <span id="login-name-error" class="error-msg">Please enter your full name.</span>
+          <span id="login-name-error" class="error-msg">Please enter your registered full name.</span>
         </div>
 
         <div class="form-group">
@@ -564,6 +564,11 @@
     const auth = getAuth(app);
     const db = getDatabase(app);
 
+    // Helper: Converts Full Name to dummy email for Auth compatibility
+    const formatNameAsEmail = (name) => {
+        return name.trim().toLowerCase().replace(/\s+/g, '.') + '@fusee.local';
+    };
+
     // DOM Elements
     const signupView = document.getElementById('signup-view');
     const loginView = document.getElementById('login-view');
@@ -588,14 +593,13 @@
     const regNameInput = document.getElementById('reg-name');
     const regYearSelect = document.getElementById('reg-year');
     const regPassInput = document.getElementById('reg-password');
+    const loginNameInput = document.getElementById('login-name');
+    const loginPassInput = document.getElementById('login-password');
 
     // Error elements
     const nameErr = document.getElementById('name-error');
     const yearErr = document.getElementById('year-error');
     const passErr = document.getElementById('password-error');
-
-    const loginNameInput = document.getElementById('login-name');
-    const loginPassInput = document.getElementById('login-password');
     const loginNameErr = document.getElementById('login-name-error');
     const loginPassErr = document.getElementById('login-password-error');
 
@@ -603,17 +607,10 @@
     let activeLogId = null;
     let unsubscribeActiveCheckin = null;
 
-    // Helper: Convert Full Name into internal synthetic auth email identifier
-    function nameToAuthEmail(fullName) {
-      const sanitized = fullName.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-      return `${sanitized}@fuseelab.local`;
-    }
-
     function clearErrors() {
       [regNameInput, regYearSelect, regPassInput, loginNameInput, loginPassInput].forEach(i => i.classList.remove('input-error'));
       
-      nameErr.textContent = 'Please enter your full name.';
-      loginNameErr.textContent = 'Please enter your full name.';
+      loginNameErr.textContent = 'Please enter your registered full name.';
       loginPassErr.textContent = 'Password must be at least 6 characters.';
 
       [nameErr, yearErr, passErr, loginNameErr, loginPassErr].forEach(e => e.style.display = 'none');
@@ -632,7 +629,7 @@
       signupView.style.display = 'block';
     });
 
-    // Handle Sign Up via Full Name & Password
+    // Handle Sign Up
     signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearErrors();
@@ -667,8 +664,8 @@
       submitBtn.textContent = 'Creating Account...';
 
       try {
-        const authEmail = nameToAuthEmail(name);
-        const userCredential = await createUserWithEmailAndPassword(auth, authEmail, password);
+        const dummyEmail = formatNameAsEmail(name);
+        const userCredential = await createUserWithEmailAndPassword(auth, dummyEmail, password);
         const user = userCredential.user;
 
         const profileData = {
@@ -677,12 +674,12 @@
           createdAt: new Date().toISOString()
         };
 
-        // Write user profile to Realtime Database
+        // Write user profile to Database (Email excluded)
         await set(ref(db, `users/${user.uid}`), profileData);
       } catch (error) {
         regNameInput.classList.add('input-error');
         nameErr.textContent = error.code === 'auth/email-already-in-use' 
-          ? 'An account with this full name already exists. Please log in instead.' 
+          ? 'This name is already registered. Please log in.' 
           : error.message;
         nameErr.style.display = 'block';
       } finally {
@@ -691,7 +688,7 @@
       }
     });
 
-    // Handle Log In via Full Name & Password
+    // Handle Log In
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearErrors();
@@ -720,11 +717,11 @@
       submitBtn.textContent = 'Logging in...';
 
       try {
-        const authEmail = nameToAuthEmail(name);
-        await signInWithEmailAndPassword(auth, authEmail, password);
+        const dummyEmail = formatNameAsEmail(name);
+        await signInWithEmailAndPassword(auth, dummyEmail, password);
       } catch (error) {
         loginPassInput.classList.add('input-error');
-        loginPassErr.textContent = 'Invalid full name or password.';
+        loginPassErr.textContent = 'Invalid name or password.';
         loginPassErr.style.display = 'block';
       } finally {
         submitBtn.disabled = false;
@@ -744,12 +741,13 @@
     // Real-time Authentication Observer
     onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Fetch user profile metadata from Realtime Database
         const userSnap = await get(ref(db, `users/${user.uid}`));
         if (userSnap.exists()) {
           currentUserData = userSnap.val();
         } else {
-          currentUserData = { fullName: 'Student', yearLevel: 'Member' };
+          // Fallback if DB record missing
+          const fallbackName = user.email ? user.email.split('@')[0].replace('.', ' ') : 'Student';
+          currentUserData = { fullName: fallbackName, yearLevel: 'Member' };
         }
         showDashboard(user, currentUserData);
       } else {
@@ -780,7 +778,6 @@
       }
       userInitials.textContent = initials.toUpperCase();
 
-      // Listen to live check-in status from Realtime Database
       const activeRef = ref(db, `active_checkins/${user.uid}`);
       if (unsubscribeActiveCheckin) unsubscribeActiveCheckin();
       
@@ -812,7 +809,7 @@
             id: newLogId,
             uid: user.uid,
             fullName: currentUserData.fullName,
-            yearLevel: currentUserData.yearLevel,
+            yearLevel: currentUserData.yearLevel, // Email removed from payload
             date: todayISO,
             checkInTime: timeString,
             checkOutTime: '—',
