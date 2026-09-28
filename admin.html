@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FUSEE Lab Admin Portal</title>
+  
+  <!-- Google Font: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-main: #f8fafc;
+      --card-bg: #ebf3fe;
+      --card-border: rgba(99, 102, 241, 0.15);
+      
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+
+      --brand-purple: #6366f1;
+      --brand-pink: #ec4899;
+      --brand-amber: #f59e0b;
+      
+      --status-in: #10b981;
+      --status-in-glow: rgba(16, 185, 129, 0.2);
+      --status-out: #ef4444;
+
+      --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --radius-lg: 24px;
+      --radius-md: 14px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 24px 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .admin-container {
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    /* Top Navigation Header */
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 20px 24px;
+      border-radius: var(--radius-lg);
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .admin-logo {
+      height: 42px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .brand-title h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-title p {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Metric Cards Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: #ffffff;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stat-value.active-count {
+      color: var(--status-in);
+    }
+
+    /* Main Dashboard Section */
+    .panel-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+    }
+
+    /* Toolbar Controls */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .search-filter-group {
+      display: flex;
+      gap: 10px;
+      flex: 1;
+      min-width: 280px;
+      flex-wrap: wrap;
+    }
+
+    .search-input, .filter-select, .date-input {
+      background: #ffffff;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      outline: none;
+    }
+
+    .search-input {
+      flex: 2;
+      min-width: 220px;
+    }
+
+    .date-input {
+      flex: 1;
+      min-width: 150px;
+    }
+
+    .search-input:focus, .filter-select:focus, .date-input:focus {
+      border-color: var(--brand-purple);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    /* Table Design */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      background: #ffffff;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+
+    th {
+      background: #f8fafc;
+      color: var(--text-secondary);
+      font-weight: 800;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+      color: var(--text-primary);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .student-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+    }
+
+    .mini-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand-purple), var(--brand-pink));
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+
+    .email-text {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* Status Pills */
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+
+    .badge-in {
+      background: rgba(16, 185, 129, 0.12);
+      color: #047857;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-out {
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--text-secondary);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    .dot-indicator {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .badge-in .dot-indicator {
+      background-color: var(--status-in);
+      box-shadow: 0 0 6px var(--status-in);
+    }
+
+    .badge-out .dot-indicator {
+      background-color: var(--text-muted);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      color: var(--text-primary);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    .btn-secondary:hover {
+      background: #f1f5f9;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--brand-purple), var(--brand-pink));
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+    }
+
+    .btn-action-checkout {
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      background: rgba(239, 68, 68, 0.1);
+      color: #dc2626;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: var(--radius-sm);
+    }
+
+    .btn-action-checkout:hover {
+      background: #dc2626;
+      color: #ffffff;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-container">
+    <!-- Top Bar Navigation -->
+    <header class="admin-header">
+      <div class="brand-group">
+        <img src="fusee-logo.jpg" alt="FUSEE Logo" class="admin-logo">
+        <div class="brand-title">
+          <h1>Lab Admin Portal</h1>
+          <p>EE Computer Laboratory Monitoring System</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="export-btn" class="btn btn-secondary" title="Export full master log to CSV">📥 Export Comprehensive CSV</button>
+        <button id="refresh-btn" class="btn btn-primary">🔄 Refresh Logs</button>
+      </div>
+    </header>
+
+    <!-- Key Metrics Cards -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Currently in Lab</div>
+        <div id="stat-active" class="stat-value active-count">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label" id="stat-total-label">Check-Ins (Selected Date)</div>
+        <div id="stat-total" class="stat-value">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Most Active Year Level</div>
+        <div id="stat-peak" class="stat-value">None</div>
+      </div>
+    </section>
+
+    <!-- Main Table Panel -->
+    <section class="panel-card">
+      <div class="toolbar">
+        <div class="search-filter-group">
+          <input type="text" id="search-input" class="search-input" placeholder="Search by student name or email...">
+          
+          <input type="date" id="date-filter" class="date-input" title="Filter logs by date">
+          <button id="all-dates-btn" class="btn btn-secondary" style="padding: 10px 14px; font-size: 0.8rem;">All Dates</button>
+
+          <select id="status-filter" class="filter-select">
+            <option value="ALL">All Statuses</option>
+            <option value="IN">Currently Checked In</option>
+            <option value="OUT">Checked Out</option>
+          </select>
+          <select id="year-filter" class="filter-select">
+            <option value="ALL">All Year Levels</option>
+            <option value="1st Year">1st Year</option>
+            <option value="2nd Year">2nd Year</option>
+            <option value="3rd Year">3rd Year</option>
+            <option value="4th Year">4th Year</option>
+            <option value="5th Year">5th Year</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Live Log Table -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Student</th>
+              <th>Year Level</th>
+              <th>Check-In Time</th>
+              <th>Check-Out Time</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="logs-tbody">
+            <!-- Dynamic Rows Injected by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Live Firebase SDK Integration (v10.8.0) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+      getDatabase, 
+      ref, 
+      onValue, 
+      update, 
+      remove 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAdUDRKUqEamY_LscdAeSNLhBZWs-EgNvU",
+      authDomain: "basil--n-bowl-kiosk-system.firebaseapp.com",
+      databaseURL: "https://basil--n-bowl-kiosk-system-default-rtdb.firebaseio.com",
+      projectId: "basil--n-bowl-kiosk-system",
+      storageBucket: "basil--n-bowl-kiosk-system.firebasestorage.app",
+      messagingSenderId: "282044269599",
+      appId: "1:282044269599:web:362b2b374a2720857a012a",
+      measurementId: "G-Z70XNW3FXQ"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let allLogs = [];
+
+    const tbody = document.getElementById('logs-tbody');
+    const searchInput = document.getElementById('search-input');
+    const dateFilter = document.getElementById('date-filter');
+    const allDatesBtn = document.getElementById('all-dates-btn');
+    const statusFilter = document.getElementById('status-filter');
+    const yearFilter = document.getElementById('year-filter');
+    const exportBtn = document.getElementById('export-btn');
+    const refreshBtn = document.getElementById('refresh-btn');
+
+    const statActive = document.getElementById('stat-active');
+    const statTotal = document.getElementById('stat-total');
+    const statTotalLabel = document.getElementById('stat-total-label');
+    const statPeak = document.getElementById('stat-peak');
+
+    // Default Date Filter to Today (YYYY-MM-DD)
+    const todayISO = new Date().toISOString().slice(0, 10);
+    dateFilter.value = todayISO;
+
+    // Real-Time Firebase Sync
+    const logsRef = ref(db, 'logs');
+    onValue(logsRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      allLogs = Object.values(data).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      renderTable();
+    });
+
+    function calculatePeakYear(logsList) {
+      if (!logsList || logsList.length === 0) return 'None';
+      const yearCounts = {};
+      logsList.forEach(log => {
+        if (log.yearLevel) {
+          yearCounts[log.yearLevel] = (yearCounts[log.yearLevel] || 0) + 1;
+        }
+      });
+      let topYear = 'None';
+      let maxCount = 0;
+      for (const [year, count] of Object.entries(yearCounts)) {
+        if (count > maxCount) {
+          maxCount = count;
+          topYear = year;
+        }
+      }
+      return topYear;
+    }
+
+    function renderTable() {
+      const query = searchInput.value.toLowerCase().trim();
+      const selectedDate = dateFilter.value;
+      const selectedStatus = statusFilter.value;
+      const selectedYear = yearFilter.value;
+
+      // Filter calculation
+      const filtered = allLogs.filter(log => {
+        const matchesQuery = (log.fullName || '').toLowerCase().includes(query) || (log.email || '').toLowerCase().includes(query);
+        const matchesDate = !selectedDate || log.date === selectedDate;
+        const matchesStatus = selectedStatus === 'ALL' || log.status === selectedStatus;
+        const matchesYear = selectedYear === 'ALL' || log.yearLevel === selectedYear;
+        return matchesQuery && matchesDate && matchesStatus && matchesYear;
+      });
+
+      // Update Metric Cards
+      const activeCount = allLogs.filter(l => l.status === 'IN').length;
+      statActive.textContent = activeCount;
+
+      if (selectedDate) {
+        statTotalLabel.textContent = `Check-Ins (${selectedDate})`;
+      } else {
+        statTotalLabel.textContent = 'Total Check-Ins (All Time)';
+      }
+      statTotal.textContent = filtered.length;
+      statPeak.textContent = calculatePeakYear(filtered);
+
+      tbody.innerHTML = '';
+
+      if (filtered.length === 0) {
+        const emptyMsg = selectedDate 
+          ? `No student logs recorded for ${selectedDate}.` 
+          : 'No student logs recorded yet.';
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="empty-state">${emptyMsg} Real-time logs will appear here live when students check in.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      filtered.forEach(log => {
+        const row = document.createElement('tr');
+        
+        const nameParts = (log.fullName || 'Student').split(' ');
+        const initials = nameParts.length >= 2 
+          ? `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase()
+          : (log.fullName || 'FE').substring(0, 2).toUpperCase();
+
+        row.innerHTML = `
+          <td><strong>${log.date || todayISO}</strong></td>
+          <td>
+            <div class="student-cell">
+              <div class="mini-avatar">${initials}</div>
+              <div>
+                <div>${log.fullName}</div>
+                <div class="email-text">${log.email}</div>
+              </div>
+            </div>
+          </td>
+          <td><strong>${log.yearLevel}</strong></td>
+          <td>${log.checkInTime}</td>
+          <td>${log.checkOutTime || '—'}</td>
+          <td>
+            <span class="badge-status ${log.status === 'IN' ? 'badge-in' : 'badge-out'}">
+              <span class="dot-indicator"></span>
+              ${log.status === 'IN' ? 'CHECKED IN' : 'CHECKED OUT'}
+            </span>
+          </td>
+          <td>
+            ${log.status === 'IN' ? `<button class="btn btn-action-checkout" data-id="${log.id}" data-uid="${log.uid}">Force Check-Out</button>` : '—'}
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      // Attach Force Check-Out Handlers
+      document.querySelectorAll('.btn-action-checkout').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const logId = e.target.getAttribute('data-id');
+          const uid = e.target.getAttribute('data-uid');
+          await forceCheckOut(logId, uid);
+        });
+      });
+    }
+
+    // Force Check Out Action in Firebase
+    async function forceCheckOut(logId, uid) {
+      if (!logId) return;
+      const now = new Date();
+      const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      try {
+        await update(ref(db, `logs/${logId}`), {
+          status: 'OUT',
+          checkOutTime: timeString
+        });
+        if (uid) {
+          await remove(ref(db, `active_checkins/${uid}`));
+        }
+      } catch (err) {
+        console.error("Error force checking out:", err);
+      }
+    }
+
+    // Show All Dates Button Toggle
+    allDatesBtn.addEventListener('click', () => {
+      if (dateFilter.value) {
+        dateFilter.value = '';
+        allDatesBtn.textContent = 'Set Today';
+      } else {
+        dateFilter.value = todayISO;
+        allDatesBtn.textContent = 'All Dates';
+      }
+      renderTable();
+    });
+
+    // Comprehensive Master CSV Export from Live Firebase Data
+    exportBtn.addEventListener('click', () => {
+      if (allLogs.length === 0) {
+        alert('No check-in logs available to export.');
+        return;
+      }
+
+      let csvContent = "data:text/csv;charset=utf-8,Date,Full Name,Email,Year Level,Check-In Time,Check-Out Time,Status\n";
+      
+      allLogs.forEach(l => {
+        csvContent += `"${l.date || ''}","${l.fullName || ''}","${l.email || ''}","${l.yearLevel || ''}","${l.checkInTime || ''}","${l.checkOutTime || '—'}","${l.status || ''}"\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `FUSEE_Lab_Master_Logs_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // Event Listeners
+    searchInput.addEventListener('input', renderTable);
+    dateFilter.addEventListener('change', () => {
+      allDatesBtn.textContent = dateFilter.value ? 'All Dates' : 'Set Today';
+      renderTable();
+    });
+    statusFilter.addEventListener('change', renderTable);
+    yearFilter.addEventListener('change', renderTable);
+    refreshBtn.addEventListener('click', renderTable);
+  </script>
+</body>
+</html>
