@@ -666,22 +666,18 @@
       function listenToAttendanceStatus(uid) {
         if (unsubscribeLogListener) unsubscribeLogListener();
 
+        // Query specifically for an active "IN" log to avoid complex index requirements
         unsubscribeLogListener = db.collection('attendance_logs')
           .where('userId', '==', uid)
-          .orderBy('createdAt', 'desc')
+          .where('status', '==', 'IN')
           .limit(1)
           .onSnapshot((snapshot) => {
             if (!snapshot.empty) {
               const doc = snapshot.docs[0];
               const logData = doc.data();
               currentLogId = doc.id;
-              if (logData.status === 'IN') {
-                isCheckedIn = true;
-                if (statusTime) statusTime.textContent = `Checked in at ${logData.checkInTime || ''}`;
-              } else {
-                isCheckedIn = false;
-                if (statusTime) statusTime.textContent = `Checked out at ${logData.checkOutTime || ''}`;
-              }
+              isCheckedIn = true;
+              if (statusTime) statusTime.textContent = `Checked in at ${logData.checkInTime || ''}`;
             } else {
               isCheckedIn = false;
               currentLogId = null;
