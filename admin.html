@@ -485,7 +485,7 @@
   <div id="admin-dashboard-screen" class="admin-container" style="display: none;">
     <header class="admin-header">
       <div class="brand-section">
-        <img src="fusee-logo.jpg" alt="FUSEE Logo" class="admin-logo">
+        <img src="fusee-logo.png" alt="FUSEE Logo" class="admin-logo">
         <div class="brand-titles">
           <h1>EE Lab Logbook Admin</h1>
           <p>Real-time Attendance & Student Telemetry Monitor</p>
@@ -655,7 +655,6 @@
       });
     }
 
-
     document.addEventListener('DOMContentLoaded', () => {
       const loginScreen = document.getElementById('admin-login-screen');
       const dashboardScreen = document.getElementById('admin-dashboard-screen');
@@ -679,7 +678,9 @@
       let isLocked = false;
 
       let rawLogs = [];
+      let usersMap = {}; // Live lookup map for student profiles
       let unsubscribeLogs = null;
+      let unsubscribeUsers = null;
 
       // Handle Authentication Observer
       auth.onAuthStateChanged((user) => {
@@ -691,6 +692,7 @@
           loginScreen.style.display = 'block';
           dashboardScreen.style.display = 'none';
           if (unsubscribeLogs) unsubscribeLogs();
+          if (unsubscribeUsers) unsubscribeUsers();
         }
       });
 
@@ -715,6 +717,7 @@
 
       // Initialize Admin Data Subscriptions
       function initDashboard() {
+        listenToUsers(); // Listen to live user profile changes to override log names
         listenToLogs();
         fetchTotalUsersCount();
         checkLockStatus();
@@ -755,7 +758,7 @@
         }
       });
 
-      // Admin Data Reset Handler (Password: Houselannister)
+      // Admin Data Reset Handler
       resetDataBtn.addEventListener('click', async () => {
         const password = await showModal({ 
           type: 'prompt', 
@@ -804,6 +807,27 @@
         }
       });
 
+      // Fetch Live User Profiles (To always show the latest updated names)
+      function listenToUsers() {
+        if (unsubscribeUsers) unsubscribeUsers();
+
+        unsubscribeUsers = db.collection('users').onSnapshot((snapshot) => {
+          snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            if (data.email) {
+              usersMap[data.email.toLowerCase()] = {
+                fullName: data.fullName,
+                yearLevel: data.yearLevel
+              };
+            }
+          });
+          // Update table if logs are already populated
+          if (rawLogs.length > 0) renderLogsTable();
+        }, (err) => {
+          console.error("Error listening to users:", err);
+        });
+      }
+
       // Fetch Live Attendance Logs
       function listenToLogs() {
         if (unsubscribeLogs) unsubscribeLogs();
@@ -849,13 +873,23 @@
         const dateVal = filterDate.value;
 
         const filtered = rawLogs.filter(log => {
+          const emailKey = log.email ? log.email.toLowerCase() : '';
+          
+          // Use live user data if available, fallback to log data
+          const currentName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : log.fullName;
+          const currentYear = (usersMap[emailKey] && usersMap[emailKey].yearLevel) ? usersMap[emailKey].yearLevel : log.yearLevel;
+
           const matchesSearch = !query || 
-            (log.fullName && log.fullName.toLowerCase().includes(query)) ||
+            (currentName && currentName.toLowerCase().includes(query)) ||
             (log.email && log.email.toLowerCase().includes(query));
 
-          const matchesYear = (yearVal === 'ALL') || (log.yearLevel === yearVal);
+          const matchesYear = (yearVal === 'ALL') || (currentYear === yearVal);
           const matchesStatus = (statusVal === 'ALL') || (log.status === statusVal);
           const matchesDate = !dateVal || (log.date === dateVal);
+          
+          // Store latest details temporarily to easily render them below
+          log._displayName = currentName;
+          log._displayYear = currentYear;
 
           return matchesSearch && matchesYear && matchesStatus && matchesDate;
         });
@@ -879,9 +913,9 @@
           return `
             <tr>
               <td>${log.date || '—'}</td>
-              <td><strong>${log.fullName || 'Student'}</strong></td>
+              <td><strong>${log._displayName || 'Student'}</strong></td>
               <td>${log.email || '—'}</td>
-              <td>${log.yearLevel || '—'}</td>
+              <td>${log._displayYear || '—'}</td>
               <td>${log.checkInTime || '—'}</td>
               <td>${log.checkOutTime || '—'}</td>
               <td>${statusBadge}</td>
@@ -904,15 +938,21 @@
         }
 
         const headers = ["Date", "Full Name", "Email", "Year Level", "Check-In Time", "Check-Out Time", "Status"];
-        const rows = rawLogs.map(log => [
-          `"${log.date || ''}"`,
-          `"${log.fullName || ''}"`,
-          `"${log.email || ''}"`,
-          `"${log.yearLevel || ''}"`,
-          `"${log.checkInTime || ''}"`,
-          `"${log.checkOutTime || ''}"`,
-          `"${log.status || ''}"`
-        ]);
+        const rows = rawLogs.map(log => {
+          const emailKey = log.email ? log.email.toLowerCase() : '';
+          const currentName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : (log.fullName || '');
+          const currentYear = (usersMap[emailKey] && usersMap[emailKey].yearLevel) ? usersMap[emailKey].yearLevel : (log.yearLevel || '');
+
+          return [
+            `"${log.date || ''}"`,
+            `"${currentName}"`,
+            `"${log.email || ''}"`,
+            `"${currentYear}"`,
+            `"${log.checkInTime || ''}"`,
+            `"${log.checkOutTime || ''}"`,
+            `"${log.status || ''}"`
+          ];
+        });
 
         const csvContent = "data:text/csv;charset=utf-8," 
           + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
