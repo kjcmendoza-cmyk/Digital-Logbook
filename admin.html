@@ -375,10 +375,17 @@
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
       transform: scale(0.95);
       transition: transform 0.2s ease-in-out;
+      text-align: center;
     }
 
     .custom-modal-overlay.active .custom-modal {
       transform: scale(1);
+    }
+
+    .custom-modal-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+      line-height: 1;
     }
 
     .custom-modal-title {
@@ -414,7 +421,7 @@
 
     .custom-modal-actions {
       display: flex;
-      justify-content: flex-end;
+      justify-content: center;
       gap: 12px;
     }
 
@@ -451,6 +458,7 @@
   <!-- Custom Notification Modal -->
   <div id="custom-modal-root" class="custom-modal-overlay">
     <div class="custom-modal">
+      <div id="custom-modal-icon" class="custom-modal-icon">ℹ️</div>
       <div id="custom-modal-title" class="custom-modal-title">Notification</div>
       <div id="custom-modal-message" class="custom-modal-message"></div>
       <input type="password" id="custom-modal-input" class="custom-modal-input" />
@@ -588,15 +596,17 @@
     const db = firebase.firestore();
 
     // Custom Modal System Implementation
-    function showModal({ type = 'alert', title = 'kjcmendoza-cmyk.github.io says', message = '', inputPlaceholder = '', confirmText = 'OK', cancelText = 'Cancel', isDanger = false }) {
+    function showModal({ type = 'alert', title = 'System Notification', message = '', icon = 'ℹ️', inputPlaceholder = '', confirmText = 'OK', cancelText = 'Cancel', isDanger = false }) {
       return new Promise((resolve) => {
         const root = document.getElementById('custom-modal-root');
+        const iconEl = document.getElementById('custom-modal-icon');
         const titleEl = document.getElementById('custom-modal-title');
         const messageEl = document.getElementById('custom-modal-message');
         const inputEl = document.getElementById('custom-modal-input');
         const cancelBtn = document.getElementById('custom-modal-btn-cancel');
         const confirmBtn = document.getElementById('custom-modal-btn-confirm');
 
+        iconEl.textContent = icon;
         titleEl.textContent = title;
         messageEl.textContent = message;
         confirmBtn.textContent = confirmText;
@@ -735,11 +745,13 @@
           
           await showModal({ 
             type: 'alert', 
+            title: isLocked ? 'Check-ins Locked' : 'Check-ins Unlocked',
+            icon: isLocked ? '🔒' : '🔓',
             message: isLocked ? "Check-ins are now LOCKED for all students." : "Check-ins are now UNLOCKED." 
           });
 
         } catch (err) {
-          await showModal({ type: 'alert', message: "Failed to update lock status: " + err.message });
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: "Failed to update lock status: " + err.message });
         }
       });
 
@@ -747,19 +759,22 @@
       resetDataBtn.addEventListener('click', async () => {
         const password = await showModal({ 
           type: 'prompt', 
+          title: 'Authentication Required',
+          icon: '🛡️',
           message: "Enter Admin Password to Reset Data:",
         });
 
         if (password === null) return; // User cancelled
 
         if (password !== "Houselannister") {
-          await showModal({ type: 'alert', message: "Incorrect password. Access denied." });
+          await showModal({ type: 'alert', title: 'Access Denied', icon: '🚫', message: "Incorrect password. Access denied." });
           return;
         }
 
         const confirmReset = await showModal({
           type: 'confirm',
           title: 'Confirm Deletion',
+          icon: '⚠️',
           message: "WARNING: Are you sure you want to delete ALL attendance logs? This action cannot be undone.",
           confirmText: 'Delete All',
           isDanger: true
@@ -779,10 +794,10 @@
           });
 
           await batch.commit();
-          await showModal({ type: 'alert', message: "All attendance log records have been successfully reset!" });
+          await showModal({ type: 'alert', title: 'Success', icon: '✅', message: "All attendance log records have been successfully reset!" });
         } catch (err) {
           console.error("Error resetting data:", err);
-          await showModal({ type: 'alert', message: "Failed to reset logs: " + err.message });
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: "Failed to reset logs: " + err.message });
         } finally {
           resetDataBtn.disabled = false;
           resetDataBtn.textContent = "🗑️ Reset Data";
@@ -884,7 +899,7 @@
       // Export Log Data to CSV
       exportCsvBtn.addEventListener('click', async () => {
         if (!rawLogs || rawLogs.length === 0) {
-          await showModal({ type: 'alert', message: "No data available to export." });
+          await showModal({ type: 'alert', title: 'Export Failed', icon: '📉', message: "No data available to export." });
           return;
         }
 
