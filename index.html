@@ -268,7 +268,8 @@
       color: var(--text-secondary);
     }
 
-    .auth-toggle-text button {
+    .auth-toggle-text button,
+    .forgot-pass-link {
       background: none;
       border: none;
       color: var(--brand-purple);
@@ -278,8 +279,19 @@
       transition: color 0.2s;
     }
 
-    .auth-toggle-text button:hover {
+    .auth-toggle-text button:hover,
+    .forgot-pass-link:hover {
       color: var(--brand-pink);
+    }
+
+    .form-extra-link {
+      text-align: right;
+      margin-top: -8px;
+      margin-bottom: 16px;
+    }
+
+    .forgot-pass-link {
+      font-size: 0.78rem;
     }
 
     /* Dashboard Profile Section */
@@ -342,14 +354,40 @@
       display: block;
     }
 
+    .profile-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-end;
+    }
+
+    .btn-edit {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--brand-purple);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-family: inherit;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    .btn-edit:hover {
+      background: rgba(99, 102, 241, 0.2);
+      transform: scale(1.03);
+    }
+
     .btn-logout {
       background: #fef2f2;
       color: #ef4444;
       border: none;
-      padding: 8px 12px;
+      padding: 5px 10px;
       border-radius: 20px;
       font-family: inherit;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 700;
       cursor: pointer;
       flex-shrink: 0;
@@ -463,6 +501,16 @@
 
     .btn-primary:hover {
       box-shadow: 0 15px 25px -10px rgba(99, 102, 241, 0.9);
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: var(--text-primary);
+      margin-top: 10px;
+    }
+
+    .btn-secondary:hover {
+      background: #cbd5e1;
     }
 
     .btn-checkin {
@@ -664,6 +712,10 @@
           <span id="login-password-error" class="error-msg">Password must be at least 6 characters.</span>
         </div>
 
+        <div class="form-extra-link">
+          <button type="button" id="go-to-reset" class="forgot-pass-link">Forgot Password?</button>
+        </div>
+
         <button type="submit" class="btn btn-primary">Log In</button>
       </form>
 
@@ -672,7 +724,58 @@
       </p>
     </section>
 
-    <!-- VIEW 3: DAILY CHECK-IN / CHECK-OUT DASHBOARD -->
+    <!-- VIEW 3: RESET PASSWORD -->
+    <section id="reset-password-view" class="view-container" style="display: none;">
+      <div class="welcome-banner" style="text-align: left;">
+        <h2>Reset Password</h2>
+        <p>Type your registered student email to receive a password reset link.</p>
+      </div>
+
+      <form id="reset-form" novalidate>
+        <div class="form-group">
+          <label for="reset-email">Student AdDU Email</label>
+          <input type="email" id="reset-email" placeholder="e.g., kjcmendoza@addu.edu.ph" required>
+          <span id="reset-email-error" class="error-msg">Please enter a valid email ending in @addu.edu.ph</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Send Reset Link</button>
+        <button type="button" id="back-to-login" class="btn btn-secondary">Back to Log In</button>
+      </form>
+    </section>
+
+    <!-- VIEW 4: EDIT PROFILE -->
+    <section id="edit-profile-view" class="view-container" style="display: none;">
+      <div class="welcome-banner" style="text-align: left;">
+        <h2>Edit Profile</h2>
+        <p>Update your personal details below.</p>
+      </div>
+
+      <form id="edit-profile-form" novalidate>
+        <div class="form-group">
+          <label for="edit-name">Full Name</label>
+          <input type="text" id="edit-name" placeholder="e.g., Kyle Joseph C. Mendoza" required>
+          <span id="edit-name-error" class="error-msg">Please enter your full name.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-year">Year Level</label>
+          <select id="edit-year" required>
+            <option value="" disabled selected>Select Year Level</option>
+            <option value="1st Year">1st Year</option>
+            <option value="2nd Year">2nd Year</option>
+            <option value="3rd Year">3rd Year</option>
+            <option value="4th Year">4th Year</option>
+            <option value="5th Year">5th Year</option>
+          </select>
+          <span id="edit-year-error" class="error-msg">Please select your year level.</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <button type="button" id="cancel-edit-profile" class="btn btn-secondary">Cancel</button>
+      </form>
+    </section>
+
+    <!-- VIEW 5: DAILY CHECK-IN / CHECK-OUT DASHBOARD -->
     <section id="dashboard-view" class="view-container" style="display: none;">
       <div class="user-profile-card">
         <div class="user-profile-left">
@@ -684,7 +787,10 @@
             <span id="user-info" class="badge-year">FUSEE Member</span>
           </div>
         </div>
-        <button id="logout-btn" class="btn-logout">Log Out</button>
+        <div class="profile-actions">
+          <button id="edit-profile-btn" class="btn-edit">Edit</button>
+          <button id="logout-btn" class="btn-logout">Log Out</button>
+        </div>
       </div>
 
       <div class="status-card">
@@ -724,13 +830,22 @@
     document.addEventListener('DOMContentLoaded', () => {
       const signupView = document.getElementById('signup-view');
       const loginView = document.getElementById('login-view');
+      const resetPassView = document.getElementById('reset-password-view');
+      const editProfileView = document.getElementById('edit-profile-view');
       const dashView = document.getElementById('dashboard-view');
       
       const signupForm = document.getElementById('signup-form');
       const loginForm = document.getElementById('login-form');
+      const resetForm = document.getElementById('reset-form');
+      const editProfileForm = document.getElementById('edit-profile-form');
 
       const goToLogin = document.getElementById('go-to-login');
       const goToSignup = document.getElementById('go-to-signup');
+      const goToReset = document.getElementById('go-to-reset');
+      const backToLogin = document.getElementById('back-to-login');
+      
+      const editProfileBtn = document.getElementById('edit-profile-btn');
+      const cancelEditProfile = document.getElementById('cancel-edit-profile');
       const logoutBtn = document.getElementById('logout-btn');
 
       const userGreeting = document.getElementById('user-greeting');
@@ -776,10 +891,29 @@
       const loginEmailErr = document.getElementById('login-email-error');
       const loginPassErr = document.getElementById('login-password-error');
 
+      // Reset Password Input & Error elements
+      const resetEmailInput = document.getElementById('reset-email');
+      const resetEmailErr = document.getElementById('reset-email-error');
+
+      // Edit Profile Input & Error elements
+      const editNameInput = document.getElementById('edit-name');
+      const editYearSelect = document.getElementById('edit-year');
+      const editNameErr = document.getElementById('edit-name-error');
+      const editYearErr = document.getElementById('edit-year-error');
+
       let isCheckedIn = false;
       let currentLogId = null;
       let currentUserProfile = null;
       let unsubscribeLogListener = null;
+
+      // Helper function to hide all views cleanly
+      function hideAllViews() {
+        signupView.style.display = 'none';
+        loginView.style.display = 'none';
+        resetPassView.style.display = 'none';
+        editProfileView.style.display = 'none';
+        dashView.style.display = 'none';
+      }
 
       // 1. Operating Hours Check (Mon-Fri 7:30 AM - 9:00 PM | Sat 7:30 AM - 6:00 PM | Sun Closed)
       function isLabOpen() {
@@ -804,26 +938,58 @@
       }
 
       function clearErrors() {
-        [regNameInput, regEmailInput, regYearSelect, regPassInput, loginEmailInput, loginPassInput].forEach(i => i.classList.remove('input-error'));
+        [regNameInput, regEmailInput, regYearSelect, regPassInput, loginEmailInput, loginPassInput, resetEmailInput, editNameInput, editYearSelect].forEach(i => i.classList.remove('input-error'));
         
         emailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
         loginEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
         loginPassErr.textContent = 'Password must be at least 6 characters.';
+        resetEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
 
-        [nameErr, emailErr, yearErr, passErr, loginEmailErr, loginPassErr].forEach(e => e.style.display = 'none');
+        [nameErr, emailErr, yearErr, passErr, loginEmailErr, loginPassErr, resetEmailErr, editNameErr, editYearErr].forEach(e => e.style.display = 'none');
       }
 
-      // Switch between Auth Forms
+      // Switch Navigation Views
       goToLogin.addEventListener('click', () => {
         clearErrors();
-        signupView.style.display = 'none';
+        hideAllViews();
         loginView.style.display = 'block';
       });
 
       goToSignup.addEventListener('click', () => {
         clearErrors();
-        loginView.style.display = 'none';
+        hideAllViews();
         signupView.style.display = 'block';
+      });
+
+      goToReset.addEventListener('click', () => {
+        clearErrors();
+        hideAllViews();
+        resetPassView.style.display = 'block';
+      });
+
+      backToLogin.addEventListener('click', () => {
+        clearErrors();
+        hideAllViews();
+        loginView.style.display = 'block';
+      });
+
+      editProfileBtn.addEventListener('click', () => {
+        if (!currentUserProfile) return;
+        clearErrors();
+        editNameInput.value = currentUserProfile.fullName || '';
+        editYearSelect.value = currentUserProfile.yearLevel || '';
+        hideAllViews();
+        editProfileView.style.display = 'block';
+      });
+
+      cancelEditProfile.addEventListener('click', () => {
+        clearErrors();
+        if (currentUserProfile) {
+          showDashboard(currentUserProfile);
+        } else {
+          hideAllViews();
+          loginView.style.display = 'block';
+        }
       });
 
       // Firebase Auth Observer (With Auto-Healing Profile Support)
@@ -879,8 +1045,7 @@
           currentUserProfile = null;
           currentLogId = null;
           isCheckedIn = false;
-          dashView.style.display = 'none';
-          signupView.style.display = 'none';
+          hideAllViews();
           loginView.style.display = 'block';
         }
       });
@@ -1018,14 +1183,103 @@
         }
       });
 
+      // Handle Reset Password Email
+      resetForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        const email = resetEmailInput.value.trim().toLowerCase();
+
+        if (!email || !email.endsWith('@addu.edu.ph')) {
+          resetEmailInput.classList.add('input-error');
+          resetEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+          resetEmailErr.style.display = 'block';
+          return;
+        }
+
+        const submitBtn = resetForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending Link...';
+
+        try {
+          await auth.sendPasswordResetEmail(email);
+          resetForm.reset();
+          showAlert("Password Reset Sent", `A password reset link has been sent to ${email}. Please check your email inbox or spam folder.`);
+          hideAllViews();
+          loginView.style.display = 'block';
+        } catch (error) {
+          resetEmailInput.classList.add('input-error');
+          resetEmailErr.textContent = error.message || 'Failed to send reset link. Please verify your email.';
+          resetEmailErr.style.display = 'block';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Send Reset Link';
+        }
+      });
+
+      // Handle Edit Profile Form
+      editProfileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        const newName = editNameInput.value.trim();
+        const newYear = editYearSelect.value;
+        const user = auth.currentUser;
+
+        let isValid = true;
+
+        if (!newName) {
+          editNameInput.classList.add('input-error');
+          editNameErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!newYear) {
+          editYearSelect.classList.add('input-error');
+          editYearErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!isValid || !user) return;
+
+        const submitBtn = editProfileForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving Changes...';
+
+        try {
+          // Update Auth Display Name
+          await user.updateProfile({ displayName: newName });
+
+          // Update Firestore User Document
+          await db.collection('users').doc(user.uid).update({
+            fullName: newName,
+            yearLevel: newYear,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+
+          // Local state update
+          currentUserProfile.fullName = newName;
+          currentUserProfile.yearLevel = newYear;
+
+          showAlert("Success", "Profile details updated successfully!");
+          showDashboard(currentUserProfile);
+
+        } catch (err) {
+          console.error("Error updating profile:", err);
+          showAlert("Update Failed", "Could not update profile. Please try again.");
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Save Changes';
+        }
+      });
+
       // Handle Log Out
       logoutBtn.addEventListener('click', () => {
         auth.signOut();
       });
 
       function showDashboard(userData) {
-        signupView.style.display = 'none';
-        loginView.style.display = 'none';
+        hideAllViews();
         dashView.style.display = 'block';
 
         const firstName = (userData.fullName || 'Student').split(' ')[0];
