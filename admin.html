@@ -174,6 +174,43 @@
       color: var(--text-primary);
     }
 
+    /* Navigation Tabs */
+    .tabs-container {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid rgba(148, 163, 184, 0.2);
+      padding-bottom: 2px;
+    }
+
+    .nav-tab-btn {
+      padding: 10px 22px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-tab-btn:hover {
+      color: var(--brand-purple);
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .nav-tab-btn.active {
+      color: var(--brand-purple);
+      border-bottom-color: var(--brand-purple);
+      background: rgba(99, 102, 241, 0.08);
+    }
+
     /* Filters Section */
     .filter-bar {
       background: var(--card-bg);
@@ -252,6 +289,45 @@
 
     tr:hover td {
       background-color: rgba(235, 243, 254, 0.4);
+    }
+
+    /* Action Buttons in Directory Table */
+    .action-btn-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-action-edit {
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--brand-purple-dark);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+    .btn-action-edit:hover {
+      background: var(--brand-purple);
+      color: #ffffff;
+    }
+
+    .btn-action-kick {
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+    .btn-action-kick:hover {
+      background: #ef4444;
+      color: #ffffff;
     }
 
     /* Status Badges */
@@ -469,6 +545,38 @@
     </div>
   </div>
 
+  <!-- Dedicated Modal for Editing Student Profiles -->
+  <div id="edit-student-modal-root" class="custom-modal-overlay">
+    <div class="custom-modal" style="max-width: 460px; text-align: left;">
+      <div class="custom-modal-title" style="margin-bottom: 16px; font-size: 1.2rem;">✏️ Edit Student Profile</div>
+      <form id="edit-student-form">
+        <input type="hidden" id="edit-student-id">
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">FULL NAME</label>
+          <input type="text" id="edit-student-name" class="search-input" style="width: 100%;" required>
+        </div>
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">ADDU EMAIL</label>
+          <input type="email" id="edit-student-email" class="search-input" style="width: 100%;" required>
+        </div>
+        <div style="margin-bottom: 24px;">
+          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">YEAR LEVEL</label>
+          <select id="edit-student-year" class="select-filter" style="width: 100%;" required>
+            <option value="1st Year">1st Year</option>
+            <option value="2nd Year">2nd Year</option>
+            <option value="3rd Year">3rd Year</option>
+            <option value="4th Year">4th Year</option>
+            <option value="5th Year">5th Year</option>
+          </select>
+        </div>
+        <div class="custom-modal-actions" style="justify-content: flex-end;">
+          <button type="button" id="edit-student-cancel" class="btn btn-modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-modal-confirm">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- AUTHENTICATION SCREEN FOR ADMIN -->
   <div id="admin-login-screen" class="auth-gate">
     <h2>Admin Portal Access</h2>
@@ -529,51 +637,99 @@
       </div>
     </section>
 
-    <!-- SEARCH & FILTERS -->
-    <section class="filter-bar">
-      <input type="text" id="filter-search" class="search-input" placeholder="Search by student name or email...">
-      
-      <select id="filter-year" class="select-filter">
-        <option value="ALL">All Year Levels</option>
-        <option value="1st Year">1st Year</option>
-        <option value="2nd Year">2nd Year</option>
-        <option value="3rd Year">3rd Year</option>
-        <option value="4th Year">4th Year</option>
-        <option value="5th Year">5th Year</option>
-      </select>
+    <!-- TAB NAVIGATION BAR -->
+    <nav class="tabs-container">
+      <button id="tab-btn-logs" class="nav-tab-btn active">📋 Attendance Logs</button>
+      <button id="tab-btn-students" class="nav-tab-btn">🎓 Registered Students Directory</button>
+    </nav>
 
-      <select id="filter-status" class="select-filter">
-        <option value="ALL">All Statuses</option>
-        <option value="IN">Currently IN</option>
-        <option value="OUT">Checked OUT</option>
-      </select>
+    <!-- TAB 1: ATTENDANCE LOGS VIEW -->
+    <div id="tab-logs-view">
+      <!-- SEARCH & FILTERS FOR LOGS -->
+      <section class="filter-bar">
+        <input type="text" id="filter-search" class="search-input" placeholder="Search by student name or email...">
+        
+        <select id="filter-year" class="select-filter">
+          <option value="ALL">All Year Levels</option>
+          <option value="1st Year">1st Year</option>
+          <option value="2nd Year">2nd Year</option>
+          <option value="3rd Year">3rd Year</option>
+          <option value="4th Year">4th Year</option>
+          <option value="5th Year">5th Year</option>
+        </select>
 
-      <input type="date" id="filter-date" class="date-filter">
-    </section>
+        <select id="filter-status" class="select-filter">
+          <option value="ALL">All Statuses</option>
+          <option value="IN">Currently IN</option>
+          <option value="OUT">Checked OUT</option>
+        </select>
 
-    <!-- TABLE -->
-    <section class="table-card">
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Student Name</th>
-              <th>AdDU Email</th>
-              <th>Year Level</th>
-              <th>Check In</th>
-              <th>Check Out</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="logs-table-body">
-            <tr>
-              <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading live records...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+        <input type="date" id="filter-date" class="date-filter">
+      </section>
+
+      <!-- LOGS TABLE -->
+      <section class="table-card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Student Name</th>
+                <th>AdDU Email</th>
+                <th>Year Level</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="logs-table-body">
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading live records...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 2: REGISTERED STUDENTS DIRECTORY VIEW -->
+    <div id="tab-students-view" style="display: none;">
+      <!-- SEARCH & FILTERS FOR STUDENTS -->
+      <section class="filter-bar">
+        <input type="text" id="filter-student-search" class="search-input" placeholder="Search registered student by name or email...">
+        
+        <select id="filter-student-year" class="select-filter">
+          <option value="ALL">All Year Levels</option>
+          <option value="1st Year">1st Year</option>
+          <option value="2nd Year">2nd Year</option>
+          <option value="3rd Year">3rd Year</option>
+          <option value="4th Year">4th Year</option>
+          <option value="5th Year">5th Year</option>
+        </select>
+      </section>
+
+      <!-- STUDENTS DIRECTORY TABLE -->
+      <section class="table-card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>AdDU Email</th>
+                <th>Year Level</th>
+                <th style="text-align: right; padding-right: 28px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="students-table-body">
+              <tr>
+                <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading registered students...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
   </div>
 
   <script>
@@ -662,13 +818,27 @@
       const loginErr = document.getElementById('admin-login-error');
       const logoutBtn = document.getElementById('admin-logout-btn');
 
+      // Tab Elements
+      const tabBtnLogs = document.getElementById('tab-btn-logs');
+      const tabBtnStudents = document.getElementById('tab-btn-students');
+      const tabLogsView = document.getElementById('tab-logs-view');
+      const tabStudentsView = document.getElementById('tab-students-view');
+      let currentTab = 'logs';
+
+      // Log Filters
       const filterSearch = document.getElementById('filter-search');
       const filterYear = document.getElementById('filter-year');
       const filterStatus = document.getElementById('filter-status');
       const filterDate = document.getElementById('filter-date');
-      const exportCsvBtn = document.getElementById('export-csv-btn');
+      
+      // Directory Filters
+      const filterStudentSearch = document.getElementById('filter-student-search');
+      const filterStudentYear = document.getElementById('filter-student-year');
 
+      const exportCsvBtn = document.getElementById('export-csv-btn');
       const logsTableBody = document.getElementById('logs-table-body');
+      const studentsTableBody = document.getElementById('students-table-body');
+
       const metricCurrentIn = document.getElementById('metric-current-in');
       const metricTodayTotal = document.getElementById('metric-today-total');
       const metricTotalUsers = document.getElementById('metric-total-users');
@@ -678,9 +848,27 @@
       let isLocked = false;
 
       let rawLogs = [];
+      let rawUsers = [];
       let usersMap = {}; // Live lookup map for student profiles
       let unsubscribeLogs = null;
       let unsubscribeUsers = null;
+
+      // Handle Tab Switch Actions
+      tabBtnLogs.addEventListener('click', () => {
+        currentTab = 'logs';
+        tabBtnLogs.classList.add('active');
+        tabBtnStudents.classList.remove('active');
+        tabLogsView.style.display = 'block';
+        tabStudentsView.style.display = 'none';
+      });
+
+      tabBtnStudents.addEventListener('click', () => {
+        currentTab = 'students';
+        tabBtnStudents.classList.add('active');
+        tabBtnLogs.classList.remove('active');
+        tabStudentsView.style.display = 'block';
+        tabLogsView.style.display = 'none';
+      });
 
       // Handle Authentication Observer
       auth.onAuthStateChanged((user) => {
@@ -717,9 +905,8 @@
 
       // Initialize Admin Data Subscriptions
       function initDashboard() {
-        listenToUsers(); // Listen to live user profile changes to override log names
+        listenToUsers(); 
         listenToLogs();
-        fetchTotalUsersCount();
         checkLockStatus();
       }
 
@@ -767,7 +954,7 @@
           message: "Enter Admin Password to Reset Data:",
         });
 
-        if (password === null) return; // User cancelled
+        if (password === null) return; 
 
         if (password !== "Houselannister") {
           await showModal({ type: 'alert', title: 'Access Denied', icon: '🚫', message: "Incorrect password. Access denied." });
@@ -807,13 +994,19 @@
         }
       });
 
-      // Fetch Live User Profiles (To always show the latest updated names)
+      // Fetch Live User Profiles & Synchronize Directory
       function listenToUsers() {
         if (unsubscribeUsers) unsubscribeUsers();
 
         unsubscribeUsers = db.collection('users').onSnapshot((snapshot) => {
+          rawUsers = [];
+          usersMap = {};
+
           snapshot.docs.forEach(doc => {
             const data = doc.data();
+            const userData = { id: doc.id, ...data };
+            rawUsers.push(userData);
+
             if (data.email) {
               usersMap[data.email.toLowerCase()] = {
                 fullName: data.fullName,
@@ -821,7 +1014,9 @@
               };
             }
           });
-          // Update table if logs are already populated
+
+          metricTotalUsers.textContent = rawUsers.length;
+          renderStudentsTable();
           if (rawLogs.length > 0) renderLogsTable();
         }, (err) => {
           console.error("Error listening to users:", err);
@@ -844,16 +1039,6 @@
           });
       }
 
-      // Fetch Total Registered Users Count
-      async function fetchTotalUsersCount() {
-        try {
-          const snapshot = await db.collection('users').get();
-          metricTotalUsers.textContent = snapshot.size;
-        } catch (err) {
-          console.error("Error fetching user count:", err);
-        }
-      }
-
       // Update Top Metrics Cards
       function updateMetrics(logs) {
         const todayStr = new Date().toISOString().slice(0, 10);
@@ -865,7 +1050,7 @@
         metricTodayTotal.textContent = todayLogs;
       }
 
-      // Filter and Render Data Table
+      // Filter and Render Attendance Logs Table
       function renderLogsTable() {
         const query = filterSearch.value.trim().toLowerCase();
         const yearVal = filterYear.value;
@@ -875,7 +1060,6 @@
         const filtered = rawLogs.filter(log => {
           const emailKey = log.email ? log.email.toLowerCase() : '';
           
-          // Use live user data if available, fallback to log data
           const currentName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : log.fullName;
           const currentYear = (usersMap[emailKey] && usersMap[emailKey].yearLevel) ? usersMap[emailKey].yearLevel : log.yearLevel;
 
@@ -887,7 +1071,6 @@
           const matchesStatus = (statusVal === 'ALL') || (log.status === statusVal);
           const matchesDate = !dateVal || (log.date === dateVal);
           
-          // Store latest details temporarily to easily render them below
           log._displayName = currentName;
           log._displayYear = currentYear;
 
@@ -898,7 +1081,7 @@
           logsTableBody.innerHTML = `
             <tr>
               <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
-                No matching records found.
+                No matching log records found.
               </td>
             </tr>`;
           return;
@@ -924,47 +1107,197 @@
         }).join('');
       }
 
+      // Filter and Render Registered Students Directory Table
+      function renderStudentsTable() {
+        const query = filterStudentSearch.value.trim().toLowerCase();
+        const yearVal = filterStudentYear.value;
+
+        const filtered = rawUsers.filter(user => {
+          const name = user.fullName ? user.fullName.toLowerCase() : '';
+          const email = user.email ? user.email.toLowerCase() : '';
+          const matchesSearch = !query || name.includes(query) || email.includes(query);
+          const matchesYear = (yearVal === 'ALL') || (user.yearLevel === yearVal);
+          return matchesSearch && matchesYear;
+        });
+
+        if (filtered.length === 0) {
+          studentsTableBody.innerHTML = `
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                No registered students found.
+              </td>
+            </tr>`;
+          return;
+        }
+
+        studentsTableBody.innerHTML = filtered.map(user => {
+          return `
+            <tr>
+              <td><strong>${user.fullName || '—'}</strong></td>
+              <td>${user.email || '—'}</td>
+              <td>${user.yearLevel || '—'}</td>
+              <td style="text-align: right;">
+                <div class="action-btn-group" style="justify-content: flex-end;">
+                  <button class="btn-action-edit" onclick="openEditStudentModal('${user.id}')">✏️ Edit</button>
+                  <button class="btn-action-kick" onclick="kickOutStudent('${user.id}', '${escapeQuotes(user.fullName)}', '${escapeQuotes(user.email)}')">🚫 Kick Out</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // Helper to escape quotes safely for string parameters
+      function escapeQuotes(str) {
+        return (str || '').replace(/'/g, "\\'");
+      }
+
+      // Global window functions for table action inline clicks
+      window.openEditStudentModal = function(userId) {
+        const user = rawUsers.find(u => u.id === userId);
+        if (!user) return;
+
+        document.getElementById('edit-student-id').value = user.id;
+        document.getElementById('edit-student-name').value = user.fullName || '';
+        document.getElementById('edit-student-email').value = user.email || '';
+        document.getElementById('edit-student-year').value = user.yearLevel || '1st Year';
+        document.getElementById('edit-student-modal-root').classList.add('active');
+      };
+
+      window.kickOutStudent = async function(userId, fullName, email) {
+        const confirmed = await showModal({
+          type: 'confirm',
+          title: 'Kick Out Student',
+          icon: '⚠️',
+          message: `Are you sure you want to kick out/remove ${fullName || email} from the registered EE students database?`,
+          confirmText: 'Kick Out',
+          isDanger: true
+        });
+
+        if (!confirmed) return;
+
+        try {
+          await db.collection('users').doc(userId).delete();
+          await showModal({
+            type: 'alert',
+            title: 'Student Removed',
+            icon: '✅',
+            message: `${fullName || email} has been kicked out and removed from registered students.`
+          });
+        } catch (err) {
+          await showModal({
+            type: 'alert',
+            title: 'Error',
+            icon: '❌',
+            message: 'Failed to delete student: ' + err.message
+          });
+        }
+      };
+
+      // Edit Student Modal Cancel Button Listener
+      document.getElementById('edit-student-cancel').addEventListener('click', () => {
+        document.getElementById('edit-student-modal-root').classList.remove('active');
+      });
+
+      // Edit Student Form Submit Listener
+      document.getElementById('edit-student-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const userId = document.getElementById('edit-student-id').value;
+        const fullName = document.getElementById('edit-student-name').value.trim();
+        const email = document.getElementById('edit-student-email').value.trim();
+        const yearLevel = document.getElementById('edit-student-year').value;
+
+        try {
+          await db.collection('users').doc(userId).update({
+            fullName: fullName,
+            email: email,
+            yearLevel: yearLevel
+          });
+
+          document.getElementById('edit-student-modal-root').classList.remove('active');
+          await showModal({
+            type: 'alert',
+            title: 'Profile Updated',
+            icon: '✅',
+            message: `Student record for ${fullName} has been successfully updated!`
+          });
+        } catch (err) {
+          await showModal({
+            type: 'alert',
+            title: 'Error',
+            icon: '❌',
+            message: 'Failed to update student profile: ' + err.message
+          });
+        }
+      });
+
       // Event Listeners for Filters
       [filterSearch, filterYear, filterStatus, filterDate].forEach(el => {
         el.addEventListener('input', renderLogsTable);
         el.addEventListener('change', renderLogsTable);
       });
 
-      // Export Log Data to CSV
+      [filterStudentSearch, filterStudentYear].forEach(el => {
+        el.addEventListener('input', renderStudentsTable);
+        el.addEventListener('change', renderStudentsTable);
+      });
+
+      // Contextual CSV Export Handler
       exportCsvBtn.addEventListener('click', async () => {
-        if (!rawLogs || rawLogs.length === 0) {
-          await showModal({ type: 'alert', title: 'Export Failed', icon: '📉', message: "No data available to export." });
-          return;
+        if (currentTab === 'logs') {
+          if (!rawLogs || rawLogs.length === 0) {
+            await showModal({ type: 'alert', title: 'Export Failed', icon: '📉', message: "No log data available to export." });
+            return;
+          }
+
+          const headers = ["Date", "Full Name", "Email", "Year Level", "Check-In Time", "Check-Out Time", "Status"];
+          const rows = rawLogs.map(log => {
+            const emailKey = log.email ? log.email.toLowerCase() : '';
+            const currentName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : (log.fullName || '');
+            const currentYear = (usersMap[emailKey] && usersMap[emailKey].yearLevel) ? usersMap[emailKey].yearLevel : (log.yearLevel || '');
+
+            return [
+              `"${log.date || ''}"`,
+              `"${currentName}"`,
+              `"${log.email || ''}"`,
+              `"${currentYear}"`,
+              `"${log.checkInTime || ''}"`,
+              `"${log.checkOutTime || ''}"`,
+              `"${log.status || ''}"`
+            ];
+          });
+
+          downloadCsv(`FUSEE_Lab_Logs_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+        } else {
+          if (!rawUsers || rawUsers.length === 0) {
+            await showModal({ type: 'alert', title: 'Export Failed', icon: '📉', message: "No registered students data to export." });
+            return;
+          }
+
+          const headers = ["Full Name", "AdDU Email", "Year Level"];
+          const rows = rawUsers.map(user => [
+            `"${user.fullName || ''}"`,
+            `"${user.email || ''}"`,
+            `"${user.yearLevel || ''}"`
+          ]);
+
+          downloadCsv(`FUSEE_Registered_Students_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
         }
+      });
 
-        const headers = ["Date", "Full Name", "Email", "Year Level", "Check-In Time", "Check-Out Time", "Status"];
-        const rows = rawLogs.map(log => {
-          const emailKey = log.email ? log.email.toLowerCase() : '';
-          const currentName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : (log.fullName || '');
-          const currentYear = (usersMap[emailKey] && usersMap[emailKey].yearLevel) ? usersMap[emailKey].yearLevel : (log.yearLevel || '');
-
-          return [
-            `"${log.date || ''}"`,
-            `"${currentName}"`,
-            `"${log.email || ''}"`,
-            `"${currentYear}"`,
-            `"${log.checkInTime || ''}"`,
-            `"${log.checkOutTime || ''}"`,
-            `"${log.status || ''}"`
-          ];
-        });
-
+      // Helper function to execute CSV downloads
+      function downloadCsv(filename, headers, rows) {
         const csvContent = "data:text/csv;charset=utf-8," 
           + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
 
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `FUSEE_Lab_Logs_${new Date().toISOString().slice(0, 10)}.csv`);
+        link.setAttribute("download", filename);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-      });
+      }
     });
   </script>
 </body>
