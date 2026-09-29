@@ -35,6 +35,7 @@
       --text-muted: #94a3b8;
 
       --brand-purple: #6366f1;
+      --brand-purple-dark: #4f46e5;
       --brand-pink: #ec4899;
       --brand-amber: #f59e0b;
       --brand-cyan: #0284c7;
@@ -261,6 +262,11 @@
       animation: fadeIn 0.3s ease;
     }
 
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     .auth-toggle-text {
       text-align: center;
       margin-top: 20px;
@@ -292,6 +298,39 @@
 
     .forgot-pass-link {
       font-size: 0.78rem;
+    }
+
+    /* Lab Operating Status Banner */
+    .lab-status-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .lab-status-open {
+      background: rgba(16, 185, 129, 0.12);
+      color: #047857;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .lab-status-closed {
+      background: rgba(239, 68, 68, 0.12);
+      color: #b91c1c;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    .lab-status-locked {
+      background: rgba(245, 158, 11, 0.12);
+      color: #b45309;
+      border: 1px solid rgba(245, 158, 11, 0.25);
     }
 
     /* Dashboard Profile Section */
@@ -580,6 +619,7 @@
       color: var(--text-secondary);
       margin-bottom: 20px;
       line-height: 1.5;
+      white-space: pre-line;
     }
 
     .modal-btn {
@@ -628,7 +668,7 @@
   <div class="bg-glow blob-2"></div>
 
   <!-- Custom Alert Modal -->
-  <div id="custom-modal" class="modal-overlay">
+  <div id="custom-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-box">
       <h3 id="modal-title" class="modal-title">System Message</h3>
       <p id="modal-msg" class="modal-message">Notification details here.</p>
@@ -656,13 +696,13 @@
       <form id="signup-form" novalidate>
         <div class="form-group">
           <label for="reg-name">Full Name</label>
-          <input type="text" id="reg-name" placeholder="e.g., Kyle Joseph C. Mendoza" required>
+          <input type="text" id="reg-name" placeholder="e.g., Kyle Joseph C. Mendoza" autocomplete="name" required>
           <span id="name-error" class="error-msg">Please enter your full name.</span>
         </div>
 
         <div class="form-group">
           <label for="reg-email">Student AdDU Email</label>
-          <input type="email" id="reg-email" placeholder="e.g., kjcmendoza@addu.edu.ph" required>
+          <input type="email" id="reg-email" placeholder="e.g., kjcmendoza@addu.edu.ph" autocomplete="email" required>
           <span id="email-error" class="error-msg">Please enter a valid email ending in @addu.edu.ph</span>
         </div>
 
@@ -681,7 +721,7 @@
 
         <div class="form-group">
           <label for="reg-password">Account Password</label>
-          <input type="password" id="reg-password" placeholder="Minimum 6 characters" required minlength="6">
+          <input type="password" id="reg-password" placeholder="Minimum 6 characters" autocomplete="new-password" required minlength="6">
           <span id="password-error" class="error-msg">Password must be at least 6 characters.</span>
         </div>
 
@@ -702,13 +742,13 @@
       <form id="login-form" novalidate>
         <div class="form-group">
           <label for="login-email">Student AdDU Email</label>
-          <input type="email" id="login-email" placeholder="e.g., kjcmendoza@addu.edu.ph" required>
+          <input type="email" id="login-email" placeholder="e.g., kjcmendoza@addu.edu.ph" autocomplete="email" required>
           <span id="login-email-error" class="error-msg">Please enter a valid email ending in @addu.edu.ph</span>
         </div>
 
         <div class="form-group">
           <label for="login-password">Account Password</label>
-          <input type="password" id="login-password" placeholder="Enter your password" required minlength="6">
+          <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password" required minlength="6">
           <span id="login-password-error" class="error-msg">Password must be at least 6 characters.</span>
         </div>
 
@@ -734,7 +774,7 @@
       <form id="reset-form" novalidate>
         <div class="form-group">
           <label for="reset-email">Student AdDU Email</label>
-          <input type="email" id="reset-email" placeholder="e.g., kjcmendoza@addu.edu.ph" required>
+          <input type="email" id="reset-email" placeholder="e.g., kjcmendoza@addu.edu.ph" autocomplete="email" required>
           <span id="reset-email-error" class="error-msg">Please enter a valid email ending in @addu.edu.ph</span>
         </div>
 
@@ -753,7 +793,7 @@
       <form id="edit-profile-form" novalidate>
         <div class="form-group">
           <label for="edit-name">Full Name</label>
-          <input type="text" id="edit-name" placeholder="e.g., Kyle Joseph C. Mendoza" required>
+          <input type="text" id="edit-name" placeholder="e.g., Kyle Joseph C. Mendoza" autocomplete="name" required>
           <span id="edit-name-error" class="error-msg">Please enter your full name.</span>
         </div>
 
@@ -777,6 +817,11 @@
 
     <!-- VIEW 5: DAILY CHECK-IN / CHECK-OUT DASHBOARD -->
     <section id="dashboard-view" class="view-container" style="display: none;">
+      <!-- Real-time Lab Availability Banner -->
+      <div id="lab-status-banner" class="lab-status-banner lab-status-open">
+        <span>🟢 Laboratory is Currently Open</span>
+      </div>
+
       <div class="user-profile-card">
         <div class="user-profile-left">
           <div class="avatar-ring">
@@ -856,6 +901,7 @@
       const statusText = document.getElementById('status-text');
       const statusTime = document.getElementById('status-time');
       const actionBtn = document.getElementById('action-btn');
+      const labStatusBanner = document.getElementById('lab-status-banner');
 
       // Modal Elements
       const modalOverlay = document.getElementById('custom-modal');
@@ -905,6 +951,31 @@
       let currentLogId = null;
       let currentUserProfile = null;
       let unsubscribeLogListener = null;
+      let unsubscribeConfigListener = null;
+      let isManuallyLocked = false;
+
+      // Real-time input cleaning on typing
+      const setupLiveValidation = (inputEl, errorEl) => {
+        if (!inputEl) return;
+        inputEl.addEventListener('input', () => {
+          inputEl.classList.remove('input-error');
+          if (errorEl) errorEl.style.display = 'none';
+        });
+        inputEl.addEventListener('change', () => {
+          inputEl.classList.remove('input-error');
+          if (errorEl) errorEl.style.display = 'none';
+        });
+      };
+
+      setupLiveValidation(regNameInput, nameErr);
+      setupLiveValidation(regEmailInput, emailErr);
+      setupLiveValidation(regYearSelect, yearErr);
+      setupLiveValidation(regPassInput, passErr);
+      setupLiveValidation(loginEmailInput, loginEmailErr);
+      setupLiveValidation(loginPassInput, loginPassErr);
+      setupLiveValidation(resetEmailInput, resetEmailErr);
+      setupLiveValidation(editNameInput, editNameErr);
+      setupLiveValidation(editYearSelect, editYearErr);
 
       // Helper function to hide all views cleanly
       function hideAllViews() {
@@ -929,6 +1000,23 @@
         return minutes >= openTime && minutes < closeTime;
       }
 
+      // Update Top Status Banner for Lab State
+      function refreshLabBannerStatus() {
+        if (!labStatusBanner) return;
+
+        const open = isLabOpen();
+        if (isManuallyLocked) {
+          labStatusBanner.className = 'lab-status-banner lab-status-locked';
+          labStatusBanner.innerHTML = '🔒 Check-Ins Locked by Administrator';
+        } else if (open) {
+          labStatusBanner.className = 'lab-status-banner lab-status-open';
+          labStatusBanner.innerHTML = '🟢 Laboratory is Currently Open';
+        } else {
+          labStatusBanner.className = 'lab-status-banner lab-status-closed';
+          labStatusBanner.innerHTML = '🔴 Laboratory is Currently Closed';
+        }
+      }
+
       // 2. Cooldown Helper (1 Minute / 60 Seconds)
       function getRemainingCooldownSeconds() {
         const lastAction = localStorage.getItem('last_lab_action');
@@ -938,14 +1026,14 @@
       }
 
       function clearErrors() {
-        [regNameInput, regEmailInput, regYearSelect, regPassInput, loginEmailInput, loginPassInput, resetEmailInput, editNameInput, editYearSelect].forEach(i => i.classList.remove('input-error'));
+        [regNameInput, regEmailInput, regYearSelect, regPassInput, loginEmailInput, loginPassInput, resetEmailInput, editNameInput, editYearSelect].forEach(i => i && i.classList.remove('input-error'));
         
-        emailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
-        loginEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
-        loginPassErr.textContent = 'Password must be at least 6 characters.';
-        resetEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+        if (emailErr) emailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+        if (loginEmailErr) loginEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+        if (loginPassErr) loginPassErr.textContent = 'Password must be at least 6 characters.';
+        if (resetEmailErr) resetEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
 
-        [nameErr, emailErr, yearErr, passErr, loginEmailErr, loginPassErr, resetEmailErr, editNameErr, editYearErr].forEach(e => e.style.display = 'none');
+        [nameErr, emailErr, yearErr, passErr, loginEmailErr, loginPassErr, resetEmailErr, editNameErr, editYearErr].forEach(e => e && (e.style.display = 'none'));
       }
 
       // Switch Navigation Views
@@ -1002,7 +1090,6 @@
             if (userDoc.exists && userDoc.data().fullName && userDoc.data().fullName !== 'Student') {
               currentUserProfile = userDoc.data();
             } else {
-              // Derive name from display name or email username (e.g. sdayupay -> Sdayupay)
               let derivedName = user.displayName;
               if (!derivedName && user.email) {
                 const emailPrefix = user.email.split('@')[0];
@@ -1016,12 +1103,13 @@
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
               };
 
-              // Auto-create/update profile in Firestore
               await userRef.set(currentUserProfile, { merge: true });
             }
 
             showDashboard(currentUserProfile);
             listenToAttendanceStatus(user.uid);
+            listenToLabConfig();
+
           } catch (err) {
             console.error("Error fetching user profile:", err);
             let derivedName = user.displayName;
@@ -1036,11 +1124,16 @@
             };
             showDashboard(currentUserProfile);
             listenToAttendanceStatus(user.uid);
+            listenToLabConfig();
           }
         } else {
           if (unsubscribeLogListener) {
             unsubscribeLogListener();
             unsubscribeLogListener = null;
+          }
+          if (unsubscribeConfigListener) {
+            unsubscribeConfigListener();
+            unsubscribeConfigListener = null;
           }
           currentUserProfile = null;
           currentLogId = null;
@@ -1050,10 +1143,26 @@
         }
       });
 
+      // Real-time listener for Admin Lock state
+      function listenToLabConfig() {
+        if (unsubscribeConfigListener) unsubscribeConfigListener();
+
+        unsubscribeConfigListener = db.collection('settings').doc('labConfig')
+          .onSnapshot((doc) => {
+            if (doc.exists && doc.data().manualLock === true) {
+              isManuallyLocked = true;
+            } else {
+              isManuallyLocked = false;
+            }
+            refreshLabBannerStatus();
+          }, (err) => {
+            console.warn("Error subscribing to lab config:", err);
+          });
+      }
+
       function listenToAttendanceStatus(uid) {
         if (unsubscribeLogListener) unsubscribeLogListener();
 
-        // Query specifically for an active "IN" log to avoid complex index requirements
         unsubscribeLogListener = db.collection('attendance_logs')
           .where('userId', '==', uid)
           .where('status', '==', 'IN')
@@ -1247,17 +1356,14 @@
         submitBtn.textContent = 'Saving Changes...';
 
         try {
-          // Update Auth Display Name
           await user.updateProfile({ displayName: newName });
 
-          // Update Firestore User Document
           await db.collection('users').doc(user.uid).update({
             fullName: newName,
             yearLevel: newYear,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
 
-          // Local state update
           currentUserProfile.fullName = newName;
           currentUserProfile.yearLevel = newYear;
 
@@ -1294,6 +1400,7 @@
           initials = nameParts[0].substring(0, 2);
         }
         userInitials.textContent = initials.toUpperCase();
+        refreshLabBannerStatus();
       }
 
       // Check In / Check Out Action
@@ -1310,28 +1417,21 @@
 
         // --- OPERATING HOURS & MANUAL LOCK CHECK ---
         const labOpen = isLabOpen();
-        
-        let isManuallyLocked = false;
-        try {
-          const configDoc = await db.collection('settings').doc('labConfig').get();
-          if (configDoc.exists && configDoc.data().manualLock === true) {
-            isManuallyLocked = true;
-          }
-        } catch (err) {
-          console.warn("Could not fetch laboratory lock status:", err);
-        }
 
         if (!labOpen || isManuallyLocked) {
           if (!isCheckedIn) {
             const lockMsg = isManuallyLocked 
               ? "Check-ins are currently locked by the laboratory administrator." 
-              : "The laboratory is currently closed. Check-ins are disabled.\n\nOperating Hours:\nMon-Fri: 7:30 AM - 9:00 PM\nSaturday: 7:30 AM - 6:00 PM";
+              : "The laboratory is currently closed. Check-ins are disabled.\n\nOperating Hours:\nMon-Fri: 7:30 AM - 9:00 PM\nSaturday: 7:30 AM - 6:00 PM\nSunday: Closed";
             showAlert("Laboratory Closed", lockMsg);
             return;
           }
         }
 
         actionBtn.disabled = true;
+        const previousBtnText = actionBtn.textContent;
+        actionBtn.textContent = isCheckedIn ? 'Checking Out...' : 'Checking In...';
+
         const now = new Date();
         const todayISO = now.toISOString().slice(0, 10);
         
@@ -1365,6 +1465,7 @@
         } catch (err) {
           console.error("Error updating check-in status:", err);
           showAlert("Error", "Failed to update status. Please try again.");
+          actionBtn.textContent = previousBtnText;
         } finally {
           actionBtn.disabled = false;
         }
