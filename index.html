@@ -150,7 +150,7 @@
     }
 
     .fusee-logo {
-      max-width: 160px;
+      max-width: 210px; /* Increased size from 160px */
       width: 100%;
       height: auto;
       object-fit: contain;
@@ -568,7 +568,7 @@
       }
 
       .fusee-logo {
-        max-width: 130px;
+        max-width: 160px; /* Scaled up proportionately for small screens from 130px */
       }
     }
   </style>
@@ -594,7 +594,7 @@
         <img src="fusee-logo.png" alt="FUSEE Logo" class="fusee-logo">
       </div>
       
-      <div class="brand-badge">⚡ EE Computer Lab Portal</div>
+      <div class="brand-badge">⚡ EE Computer Laboratory Portal</div>
       <h1>Digital Logbook</h1>
       <p class="subtitle">Federation of United Students of Electrical Engineering</p>
     </header>
@@ -688,7 +688,7 @@
       </div>
 
       <div class="status-card">
-        <p class="status-label">CURRENT LAB STATUS</p>
+        <p class="status-label">CURRENT LABORATORY STATUS</p>
         
         <div id="status-indicator" class="status-pill status-out">
           <span class="status-dot"></span>
@@ -1045,15 +1045,15 @@
             isManuallyLocked = true;
           }
         } catch (err) {
-          console.warn("Could not fetch lab lock status:", err);
+          console.warn("Could not fetch laboratory lock status:", err);
         }
 
         if (!labOpen || isManuallyLocked) {
           if (!isCheckedIn) {
             const lockMsg = isManuallyLocked 
-              ? "Check-ins are currently locked by the lab administrator." 
+              ? "Check-ins are currently locked by the laboratory administrator." 
               : "The laboratory is currently closed. Check-ins are disabled.\n\nOperating Hours:\nMon-Fri: 7:30 AM - 9:00 PM\nSaturday: 7:30 AM - 6:00 PM";
-            showAlert("Lab Closed", lockMsg);
+            showAlert("Laboratory Closed", lockMsg);
             return;
           }
         }
@@ -1100,12 +1100,12 @@
         if (isCheckedIn) {
           statusIndicator.className = 'status-pill status-in';
           statusText.textContent = 'CHECKED IN';
-          actionBtn.textContent = 'CHECK OUT OF LAB';
+          actionBtn.textContent = 'CHECK OUT OF LABORATORY';
           actionBtn.className = 'btn btn-checkout';
         } else {
           statusIndicator.className = 'status-pill status-out';
           statusText.textContent = 'CHECKED OUT';
-          actionBtn.textContent = 'CHECK IN TO LAB';
+          actionBtn.textContent = 'CHECK IN TO LABORATORY';
           actionBtn.className = 'btn btn-checkin';
         }
       }
