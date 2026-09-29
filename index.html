@@ -600,6 +600,28 @@
       let currentUserProfile = null;
       let unsubscribeLogListener = null;
 
+      // 1. Operating Hours Check (Mon-Fri 7:30 AM - 9:00 PM | Sat 7:30 AM - 6:00 PM | Sun Closed)
+      function isLabOpen() {
+        const now = new Date();
+        const day = now.getDay(); // 0 = Sunday, 1 = Mon, ..., 6 = Sat
+        const minutes = now.getHours() * 60 + now.getMinutes();
+
+        if (day === 0) return false; // Sunday closed
+
+        const openTime = 7 * 60 + 30; // 7:30 AM = 450 mins
+        const closeTime = (day === 6) ? (18 * 60) : (21 * 60); // Sat = 6:00 PM (1080 mins), Mon-Fri = 9:00 PM (1260 mins)
+
+        return minutes >= openTime && minutes < closeTime;
+      }
+
+      // 2. Cooldown Helper (1 Minute / 60 Seconds)
+      function getRemainingCooldownSeconds() {
+        const lastAction = localStorage.getItem('last_lab_action');
+        if (!lastAction) return 0;
+        const elapsed = (Date.now() - parseInt(lastAction, 10)) / 1000;
+        return elapsed < 60 ? Math.ceil(60 - elapsed) : 0;
+      }
+
       function clearErrors() {
         [regNameInput, regEmailInput, regYearSelect, regPassInput, loginEmailInput, loginPassInput].forEach(i => i.classList.remove('input-error'));
         
@@ -825,6 +847,35 @@
         const user = auth.currentUser;
         if (!user || !currentUserProfile) return;
 
+        // --- COOLDOWN CHECK ---
+        const remainingSeconds = getRemainingCooldownSeconds();
+        if (remainingSeconds > 0) {
+          alert(`Please wait ${remainingSeconds} second(s) before checking in or out again.`);
+          return;
+        }
+
+        // --- OPERATING HOURS & MANUAL LOCK CHECK ---
+        const labOpen = isLabOpen();
+        
+        let isManuallyLocked = false;
+        try {
+          const configDoc = await db.collection('settings').doc('labConfig').get();
+          if (configDoc.exists && configDoc.data().manualLock === true) {
+            isManuallyLocked = true;
+          }
+        } catch (err) {
+          console.warn("Could not fetch lab lock status:", err);
+        }
+
+        if (!labOpen || isManuallyLocked) {
+          if (!isCheckedIn) {
+            alert(isManuallyLocked 
+              ? "Check-ins are currently locked by the lab administrator." 
+              : "The laboratory is currently closed. Check-ins are disabled.\n\nOperating Hours:\nMon-Fri: 7:30 AM - 9:00 PM\nSaturday: 7:30 AM - 6:00 PM");
+            return;
+          }
+        }
+
         actionBtn.disabled = true;
         const now = new Date();
         const todayISO = now.toISOString().slice(0, 10);
@@ -850,6 +901,10 @@
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
           }
+
+          // Save timestamp to local storage for 1-minute cooldown
+          localStorage.setItem('last_lab_action', Date.now().toString());
+
         } catch (err) {
           console.error("Error updating check-in status:", err);
           alert("Failed to update status. Please try again.");

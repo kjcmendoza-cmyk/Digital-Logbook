@@ -371,6 +371,16 @@
         </div>
       </div>
       <div class="admin-controls">
+        <!-- Manual Lock Toggle Button -->
+        <button id="toggle-lock-btn" class="btn" style="background: #f59e0b; color: #fff;">
+          🔒 Lock Check-Ins
+        </button>
+
+        <!-- Reset Data Button -->
+        <button id="reset-data-btn" class="btn" style="background: #ef4444; color: #fff;">
+          🗑️ Reset Data
+        </button>
+
         <button id="export-csv-btn" class="btn btn-export">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
             <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
@@ -482,6 +492,10 @@
       const metricTodayTotal = document.getElementById('metric-today-total');
       const metricTotalUsers = document.getElementById('metric-total-users');
 
+      const resetDataBtn = document.getElementById('reset-data-btn');
+      const toggleLockBtn = document.getElementById('toggle-lock-btn');
+      let isLocked = false;
+
       let rawLogs = [];
       let unsubscribeLogs = null;
 
@@ -521,7 +535,71 @@
       function initDashboard() {
         listenToLogs();
         fetchTotalUsersCount();
+        checkLockStatus();
       }
+
+      // Initialize Admin Lock Switch State
+      async function checkLockStatus() {
+        try {
+          const doc = await db.collection('settings').doc('labConfig').get();
+          if (doc.exists && doc.data().manualLock) {
+            isLocked = true;
+            toggleLockBtn.textContent = '🔓 Unlock Check-Ins';
+          } else {
+            isLocked = false;
+            toggleLockBtn.textContent = '🔒 Lock Check-Ins';
+          }
+        } catch (err) {
+          console.error("Error reading lock status:", err);
+        }
+      }
+
+      // Manual Check-In Lock Toggle Handler
+      toggleLockBtn.addEventListener('click', async () => {
+        isLocked = !isLocked;
+        try {
+          await db.collection('settings').doc('labConfig').set({ manualLock: isLocked }, { merge: true });
+          toggleLockBtn.textContent = isLocked ? '🔓 Unlock Check-Ins' : '🔒 Lock Check-Ins';
+          alert(isLocked ? "Check-ins are now LOCKED for all students." : "Check-ins are now UNLOCKED.");
+        } catch (err) {
+          alert("Failed to update lock status: " + err.message);
+        }
+      });
+
+      // Admin Data Reset Handler (Password: Houselannister)
+      resetDataBtn.addEventListener('click', async () => {
+        const password = prompt("Enter Admin Password to Reset Data:");
+        if (password === null) return; // User cancelled
+
+        if (password !== "Houselannister") {
+          alert("Incorrect password. Access denied.");
+          return;
+        }
+
+        const confirmReset = confirm("WARNING: Are you sure you want to delete ALL attendance logs? This action cannot be undone.");
+        if (!confirmReset) return;
+
+        resetDataBtn.disabled = true;
+        resetDataBtn.textContent = "Clearing Logs...";
+
+        try {
+          const snapshot = await db.collection('attendance_logs').get();
+          const batch = db.batch();
+
+          snapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+          });
+
+          await batch.commit();
+          alert("All attendance log records have been successfully reset!");
+        } catch (err) {
+          console.error("Error resetting data:", err);
+          alert("Failed to reset logs: " + err.message);
+        } finally {
+          resetDataBtn.disabled = false;
+          resetDataBtn.textContent = "🗑️ Reset Data";
+        }
+      });
 
       // Fetch Live Attendance Logs
       function listenToLogs() {
