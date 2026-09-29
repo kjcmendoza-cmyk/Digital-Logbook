@@ -460,13 +460,12 @@
       100% { transform: scale(0.95); opacity: 0.8; }
     }
 
-    /* Custom Notification Alert Modal */
+    /* Custom Alert Modal */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.55);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -483,68 +482,49 @@
 
     .modal-box {
       background: #ffffff;
-      border-radius: 24px;
-      padding: 30px 24px 24px 24px;
+      border-radius: var(--radius-md);
+      padding: 24px;
       width: 90%;
-      max-width: 340px;
+      max-width: 320px;
       text-align: center;
-      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
       transform: translateY(20px) scale(0.95);
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      border: 1px solid rgba(226, 232, 240, 0.8);
     }
 
     .modal-overlay.active .modal-box {
       transform: translateY(0) scale(1);
     }
 
-    .modal-icon-badge {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      background: #fef2f2;
-      border: 2px solid #fecaca;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      margin: 0 auto 16px auto;
-      box-shadow: 0 8px 16px -4px rgba(239, 68, 68, 0.2);
-    }
-
     .modal-title {
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       font-weight: 800;
       color: var(--text-primary);
       margin-bottom: 8px;
     }
 
     .modal-message {
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       color: var(--text-secondary);
       margin-bottom: 24px;
       line-height: 1.5;
-      font-weight: 600;
     }
 
     .modal-btn {
-      background: linear-gradient(135deg, var(--brand-purple), var(--brand-purple-dark, #4f46e5));
+      background: var(--brand-purple);
       color: white;
       border: none;
-      padding: 12px 24px;
-      border-radius: var(--radius-md);
+      padding: 10px 24px;
+      border-radius: 20px;
       font-family: inherit;
       font-weight: 700;
-      font-size: 0.95rem;
       cursor: pointer;
       width: 100%;
-      box-shadow: 0 8px 16px -4px rgba(99, 102, 241, 0.4);
-      transition: all 0.2s ease;
+      transition: background 0.2s;
     }
 
     .modal-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 12px 20px -4px rgba(99, 102, 241, 0.5);
+      background: #4f46e5;
     }
   </style>
 </head>
@@ -554,13 +534,12 @@
   <div class="bg-glow blob-1"></div>
   <div class="bg-glow blob-2"></div>
 
-  <!-- Custom Visual Alert Modal -->
+  <!-- Custom Alert Modal -->
   <div id="custom-modal" class="modal-overlay">
     <div class="modal-box">
-      <div id="modal-icon-badge" class="modal-icon-badge">🔒</div>
       <h3 id="modal-title" class="modal-title">System Message</h3>
       <p id="modal-msg" class="modal-message">Notification details here.</p>
-      <button id="modal-close" class="modal-btn">Understood</button>
+      <button id="modal-close" class="modal-btn">OK</button>
     </div>
   </div>
 
@@ -575,8 +554,8 @@
       <p class="subtitle">Federation of United Students of Electrical Engineering</p>
     </header>
 
-    <!-- VIEW 1: SIGN UP -->
-    <section id="signup-view" class="view-container">
+    <!-- VIEW 1: SIGN UP (Fixed: Hidden by default to prevent FOUC) -->
+    <section id="signup-view" class="view-container" style="display: none;">
       <div class="welcome-banner">
         <h2>Create Account</h2>
         <p>Register your details to pair this device with your FUSEE lab profile.</p>
@@ -622,7 +601,7 @@
       </p>
     </section>
 
-    <!-- VIEW 2: LOG IN -->
+    <!-- VIEW 2: LOG IN (Fixed: Hidden by default) -->
     <section id="login-view" class="view-container" style="display: none;">
       <div class="welcome-banner">
         <h2>Welcome Back</h2>
@@ -692,7 +671,6 @@
       measurementId: "G-6DEVWDXEC9"
     };
 
-    // Initialize Firebase
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
@@ -720,17 +698,15 @@
       const statusTime = document.getElementById('status-time');
       const actionBtn = document.getElementById('action-btn');
 
-      // Enhanced Visual Alert Modal Elements
+      // Modal Elements
       const modalOverlay = document.getElementById('custom-modal');
       const modalTitle = document.getElementById('modal-title');
       const modalMsg = document.getElementById('modal-msg');
-      const modalIconBadge = document.getElementById('modal-icon-badge');
       const modalClose = document.getElementById('modal-close');
 
-      function showAlert(title, message, icon = '🔒') {
+      function showAlert(title, message) {
         modalTitle.textContent = title;
         modalMsg.textContent = message;
-        modalIconBadge.textContent = icon;
         modalOverlay.classList.add('active');
       }
 
@@ -738,19 +714,16 @@
         modalOverlay.classList.remove('active');
       });
 
-      // Sign Up Input elements
       const regNameInput = document.getElementById('reg-name');
       const regEmailInput = document.getElementById('reg-email');
       const regYearSelect = document.getElementById('reg-year');
       const regPassInput = document.getElementById('reg-password');
 
-      // Sign Up Error elements
       const nameErr = document.getElementById('name-error');
       const emailErr = document.getElementById('email-error');
       const yearErr = document.getElementById('year-error');
       const passErr = document.getElementById('password-error');
 
-      // Log In Input & Error elements
       const loginEmailInput = document.getElementById('login-email');
       const loginPassInput = document.getElementById('login-password');
       const loginEmailErr = document.getElementById('login-email-error');
@@ -761,21 +734,19 @@
       let currentUserProfile = null;
       let unsubscribeLogListener = null;
 
-      // Operating Hours Check (Mon-Fri 7:30 AM - 9:00 PM | Sat 7:30 AM - 6:00 PM | Sun Closed)
       function isLabOpen() {
         const now = new Date();
-        const day = now.getDay(); // 0 = Sunday, 1 = Mon, ..., 6 = Sat
+        const day = now.getDay(); 
         const minutes = now.getHours() * 60 + now.getMinutes();
 
-        if (day === 0) return false; // Sunday closed
+        if (day === 0) return false; 
 
-        const openTime = 7 * 60 + 30; // 7:30 AM = 450 mins
-        const closeTime = (day === 6) ? (18 * 60) : (21 * 60); // Sat = 6:00 PM (1080 mins), Mon-Fri = 9:00 PM (1260 mins)
+        const openTime = 7 * 60 + 30; 
+        const closeTime = (day === 6) ? (18 * 60) : (21 * 60); 
 
         return minutes >= openTime && minutes < closeTime;
       }
 
-      // Cooldown Helper (1 Minute / 60 Seconds)
       function getRemainingCooldownSeconds() {
         const lastAction = localStorage.getItem('last_lab_action');
         if (!lastAction) return 0;
@@ -785,15 +756,12 @@
 
       function clearErrors() {
         [regNameInput, regEmailInput, regYearSelect, regPassInput, loginEmailInput, loginPassInput].forEach(i => i.classList.remove('input-error'));
-        
         emailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
         loginEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
         loginPassErr.textContent = 'Password must be at least 6 characters.';
-
         [nameErr, emailErr, yearErr, passErr, loginEmailErr, loginPassErr].forEach(e => e.style.display = 'none');
       }
 
-      // Switch between Auth Forms
       goToLogin.addEventListener('click', () => {
         clearErrors();
         signupView.style.display = 'none';
@@ -806,7 +774,6 @@
         signupView.style.display = 'block';
       });
 
-      // Firebase Auth Observer
       auth.onAuthStateChanged(async (user) => {
         if (user) {
           try {
@@ -846,10 +813,10 @@
         }
       });
 
+      // Fixed: Verify the log date to prevent locking users into abandoned logs from previous days
       function listenToAttendanceStatus(uid) {
         if (unsubscribeLogListener) unsubscribeLogListener();
 
-        // Query specifically for an active "IN" log
         unsubscribeLogListener = db.collection('attendance_logs')
           .where('userId', '==', uid)
           .where('status', '==', 'IN')
@@ -858,9 +825,27 @@
             if (!snapshot.empty) {
               const doc = snapshot.docs[0];
               const logData = doc.data();
-              currentLogId = doc.id;
-              isCheckedIn = true;
-              if (statusTime) statusTime.textContent = `Checked in at ${logData.checkInTime || ''}`;
+              
+              const now = new Date();
+              const year = now.getFullYear();
+              const month = String(now.getMonth() + 1).padStart(2, '0');
+              const day = String(now.getDate()).padStart(2, '0');
+              const localToday = `${year}-${month}-${day}`;
+
+              if (logData.date !== localToday) {
+                // Auto-checkout abandoned logs from yesterday
+                db.collection('attendance_logs').doc(doc.id).update({
+                  status: 'OUT',
+                  checkOutTime: 'Auto-closed'
+                });
+                isCheckedIn = false;
+                currentLogId = null;
+                if (statusTime) statusTime.textContent = 'Tap below when entering or leaving';
+              } else {
+                currentLogId = doc.id;
+                isCheckedIn = true;
+                if (statusTime) statusTime.textContent = `Checked in at ${logData.checkInTime || ''}`;
+              }
             } else {
               isCheckedIn = false;
               currentLogId = null;
@@ -873,7 +858,6 @@
           });
       }
 
-      // Handle Sign Up
       signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         clearErrors();
@@ -889,20 +873,17 @@
           nameErr.style.display = 'block';
           isValid = false;
         }
-
         if (!email || !email.endsWith('@addu.edu.ph')) {
           regEmailInput.classList.add('input-error');
           emailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
           emailErr.style.display = 'block';
           isValid = false;
         }
-
         if (!year) {
           regYearSelect.classList.add('input-error');
           yearErr.style.display = 'block';
           isValid = false;
         }
-
         if (!password || password.length < 6) {
           regPassInput.classList.add('input-error');
           passErr.style.display = 'block';
@@ -937,7 +918,6 @@
         }
       });
 
-      // Handle Log In
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         clearErrors();
@@ -979,7 +959,6 @@
         }
       });
 
-      // Handle Log Out
       logoutBtn.addEventListener('click', () => {
         auth.signOut();
       });
@@ -1003,48 +982,47 @@
         userInitials.textContent = initials.toUpperCase();
       }
 
-      // Check In / Check Out Action
       actionBtn.addEventListener('click', async () => {
         const user = auth.currentUser;
         if (!user || !currentUserProfile) return;
 
-        // --- COOLDOWN CHECK ---
         const remainingSeconds = getRemainingCooldownSeconds();
         if (remainingSeconds > 0) {
-          showAlert("Cooldown Active", `Please wait ${remainingSeconds} second(s) before checking in or out again.`, "⏳");
+          showAlert("Cooldown Active", `Please wait ${remainingSeconds} second(s) before checking in or out again.`);
           return;
         }
 
-        // --- OPERATING HOURS & MANUAL LOCK CHECK (BEFORE CHECKING IN) ---
-        if (!isCheckedIn) {
-          let isManuallyLocked = false;
-          try {
-            const configDoc = await db.collection('settings').doc('labConfig').get();
-            if (configDoc.exists && configDoc.data().manualLock === true) {
-              isManuallyLocked = true;
-            }
-          } catch (err) {
-            console.warn("Could not fetch lab lock status:", err);
+        const labOpen = isLabOpen();
+        let isManuallyLocked = false;
+        
+        try {
+          const configDoc = await db.collection('settings').doc('labConfig').get();
+          if (configDoc.exists && configDoc.data().manualLock === true) {
+            isManuallyLocked = true;
           }
+        } catch (err) {
+          console.warn("Could not fetch lab lock status:", err);
+        }
 
-          // 1. Check if Admin Locked
-          if (isManuallyLocked) {
-            showAlert("Check-In Disabled", "The Admin Locked Check-ins", "🔒");
-            return;
-          }
-
-          // 2. Check if Past Closing Schedule or Before Opening Hours / Sunday
-          const labOpen = isLabOpen();
-          if (!labOpen) {
-            showAlert("Access Unavailable", "The Laboratory is Closed", "🚫");
+        if (!labOpen || isManuallyLocked) {
+          if (!isCheckedIn) {
+            const lockMsg = isManuallyLocked 
+              ? "Check-ins are currently locked by the lab administrator." 
+              : "The laboratory is currently closed. Check-ins are disabled.\n\nOperating Hours:\nMon-Fri: 7:30 AM - 9:00 PM\nSaturday: 7:30 AM - 6:00 PM";
+            showAlert("Lab Closed", lockMsg);
             return;
           }
         }
 
         actionBtn.disabled = true;
         const now = new Date();
-        const todayISO = now.toISOString().slice(0, 10);
         const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Fixed: Ensure the check-in logs reflect the correct local Philippine date, avoiding UTC offset bugs
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const localTodayISO = `${year}-${month}-${day}`;
 
         try {
           if (!isCheckedIn) {
@@ -1053,7 +1031,7 @@
               fullName: currentUserProfile.fullName || 'Student',
               email: user.email,
               yearLevel: currentUserProfile.yearLevel || '1st Year',
-              date: todayISO,
+              date: localTodayISO,
               checkInTime: timeString,
               checkOutTime: null,
               status: 'IN',
@@ -1066,13 +1044,10 @@
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
           }
-
-          // Save timestamp to local storage for 1-minute cooldown
           localStorage.setItem('last_lab_action', Date.now().toString());
-
         } catch (err) {
           console.error("Error updating check-in status:", err);
-          showAlert("System Error", "Failed to update status. Please try again.", "⚠️");
+          showAlert("Error", "Failed to update status. Please try again.");
         } finally {
           actionBtn.disabled = false;
         }
