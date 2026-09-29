@@ -27,8 +27,8 @@
   <style>
     :root {
       --bg-main: #f4f7fb;
-      --card-bg: rgba(255, 255, 255, 0.90);
-      --card-border: rgba(255, 255, 255, 0.6);
+      --card-bg: rgba(230, 237, 253, 0.88); /* Matched to FUSEE logo background #e6edfd */
+      --card-border: rgba(255, 255, 255, 0.7);
       
       --text-primary: #1e293b;
       --text-secondary: #64748b;
@@ -78,7 +78,7 @@
       overflow-x: hidden;
     }
 
-    /* Ambient Background Accents - Positioned fixed & restrained to prevent horizontal scroll/zoom bug */
+    /* Ambient Background Accents */
     .bg-glow {
       position: fixed;
       border-radius: 50%;
@@ -111,7 +111,7 @@
       100% { transform: translate(20px, 20px); }
     }
 
-    /* Main Inner Card - Glassmorphism */
+    /* Main Inner Card - Glassmorphism matched to logo color */
     .app-card {
       width: 100%;
       max-width: 420px;
@@ -155,6 +155,7 @@
       height: auto;
       object-fit: contain;
       filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.05));
+      mix-blend-mode: multiply;
     }
 
     .brand-badge {
