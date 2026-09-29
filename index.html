@@ -150,7 +150,7 @@
     }
 
     .fusee-logo {
-      max-width: 210px; /* Increased size from 160px */
+      max-width: 210px;
       width: 100%;
       height: auto;
       object-fit: contain;
@@ -568,7 +568,7 @@
       }
 
       .fusee-logo {
-        max-width: 160px; /* Scaled up proportionately for small screens from 130px */
+        max-width: 160px;
       }
     }
   </style>
@@ -1061,7 +1061,10 @@
         actionBtn.disabled = true;
         const now = new Date();
         const todayISO = now.toISOString().slice(0, 10);
-        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        // --- TIME FORMAT FIX ---
+        // Explicitly format to 12-hour AM/PM format regardless of device local language settings
+        const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
         try {
           if (!isCheckedIn) {
