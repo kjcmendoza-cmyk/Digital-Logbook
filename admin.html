@@ -118,6 +118,7 @@
       transition: all 0.2s ease;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
     }
 
@@ -344,9 +345,121 @@
       margin-top: 8px;
       display: none;
     }
+
+    /* Custom Modal Overrides for Visuals */
+    .custom-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .custom-modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .custom-modal {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 420px;
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      transform: scale(0.95);
+      transition: transform 0.2s ease-in-out;
+    }
+
+    .custom-modal-overlay.active .custom-modal {
+      transform: scale(1);
+    }
+
+    .custom-modal-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .custom-modal-message {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .custom-modal-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+      outline: none;
+      display: none;
+    }
+
+    .custom-modal-input:focus {
+      border-color: var(--brand-purple);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .custom-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .btn-modal-cancel {
+      background: #ffffff;
+      color: var(--text-secondary);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    .btn-modal-cancel:hover {
+      background: #f1f5f9;
+    }
+
+    .btn-modal-confirm {
+      background: var(--brand-purple);
+      color: white;
+    }
+    .btn-modal-confirm:hover {
+      background: var(--brand-purple-dark);
+    }
+    
+    .btn-modal-danger {
+      background: var(--status-out);
+      color: white;
+    }
+    .btn-modal-danger:hover {
+      background: #dc2626;
+    }
+
   </style>
 </head>
 <body>
+
+  <!-- Custom Notification Modal -->
+  <div id="custom-modal-root" class="custom-modal-overlay">
+    <div class="custom-modal">
+      <div id="custom-modal-title" class="custom-modal-title">Notification</div>
+      <div id="custom-modal-message" class="custom-modal-message"></div>
+      <input type="password" id="custom-modal-input" class="custom-modal-input" />
+      <div class="custom-modal-actions">
+        <button id="custom-modal-btn-cancel" class="btn btn-modal-cancel">Cancel</button>
+        <button id="custom-modal-btn-confirm" class="btn btn-modal-confirm">OK</button>
+      </div>
+    </div>
+  </div>
 
   <!-- AUTHENTICATION SCREEN FOR ADMIN -->
   <div id="admin-login-screen" class="auth-gate">
@@ -474,6 +587,65 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    // Custom Modal System Implementation
+    function showModal({ type = 'alert', title = 'kjcmendoza-cmyk.github.io says', message = '', inputPlaceholder = '', confirmText = 'OK', cancelText = 'Cancel', isDanger = false }) {
+      return new Promise((resolve) => {
+        const root = document.getElementById('custom-modal-root');
+        const titleEl = document.getElementById('custom-modal-title');
+        const messageEl = document.getElementById('custom-modal-message');
+        const inputEl = document.getElementById('custom-modal-input');
+        const cancelBtn = document.getElementById('custom-modal-btn-cancel');
+        const confirmBtn = document.getElementById('custom-modal-btn-confirm');
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+        confirmBtn.textContent = confirmText;
+        cancelBtn.textContent = cancelText;
+
+        // Reset Button Styles
+        confirmBtn.className = 'btn btn-modal-confirm';
+        if (isDanger) confirmBtn.classList.add('btn-modal-danger');
+
+        // Configure Layout by Type
+        if (type === 'alert') {
+          cancelBtn.style.display = 'none';
+          inputEl.style.display = 'none';
+        } else if (type === 'confirm') {
+          cancelBtn.style.display = 'inline-flex';
+          inputEl.style.display = 'none';
+        } else if (type === 'prompt') {
+          cancelBtn.style.display = 'inline-flex';
+          inputEl.style.display = 'block';
+          inputEl.placeholder = inputPlaceholder;
+          inputEl.value = '';
+        }
+
+        root.classList.add('active');
+        if (type === 'prompt') inputEl.focus();
+
+        const closeModal = () => {
+          root.classList.remove('active');
+          cancelBtn.onclick = null;
+          confirmBtn.onclick = null;
+        };
+
+        cancelBtn.onclick = () => {
+          closeModal();
+          resolve(null);
+        };
+
+        confirmBtn.onclick = () => {
+          closeModal();
+          if (type === 'prompt') {
+            resolve(inputEl.value);
+          } else {
+            resolve(true);
+          }
+        };
+      });
+    }
+
+
     document.addEventListener('DOMContentLoaded', () => {
       const loginScreen = document.getElementById('admin-login-screen');
       const dashboardScreen = document.getElementById('admin-dashboard-screen');
@@ -560,23 +732,39 @@
         try {
           await db.collection('settings').doc('labConfig').set({ manualLock: isLocked }, { merge: true });
           toggleLockBtn.textContent = isLocked ? '🔓 Unlock Check-Ins' : '🔒 Lock Check-Ins';
-          alert(isLocked ? "Check-ins are now LOCKED for all students." : "Check-ins are now UNLOCKED.");
+          
+          await showModal({ 
+            type: 'alert', 
+            message: isLocked ? "Check-ins are now LOCKED for all students." : "Check-ins are now UNLOCKED." 
+          });
+
         } catch (err) {
-          alert("Failed to update lock status: " + err.message);
+          await showModal({ type: 'alert', message: "Failed to update lock status: " + err.message });
         }
       });
 
       // Admin Data Reset Handler (Password: Houselannister)
       resetDataBtn.addEventListener('click', async () => {
-        const password = prompt("Enter Admin Password to Reset Data:");
+        const password = await showModal({ 
+          type: 'prompt', 
+          message: "Enter Admin Password to Reset Data:",
+        });
+
         if (password === null) return; // User cancelled
 
         if (password !== "Houselannister") {
-          alert("Incorrect password. Access denied.");
+          await showModal({ type: 'alert', message: "Incorrect password. Access denied." });
           return;
         }
 
-        const confirmReset = confirm("WARNING: Are you sure you want to delete ALL attendance logs? This action cannot be undone.");
+        const confirmReset = await showModal({
+          type: 'confirm',
+          title: 'Confirm Deletion',
+          message: "WARNING: Are you sure you want to delete ALL attendance logs? This action cannot be undone.",
+          confirmText: 'Delete All',
+          isDanger: true
+        });
+
         if (!confirmReset) return;
 
         resetDataBtn.disabled = true;
@@ -591,10 +779,10 @@
           });
 
           await batch.commit();
-          alert("All attendance log records have been successfully reset!");
+          await showModal({ type: 'alert', message: "All attendance log records have been successfully reset!" });
         } catch (err) {
           console.error("Error resetting data:", err);
-          alert("Failed to reset logs: " + err.message);
+          await showModal({ type: 'alert', message: "Failed to reset logs: " + err.message });
         } finally {
           resetDataBtn.disabled = false;
           resetDataBtn.textContent = "🗑️ Reset Data";
@@ -694,9 +882,9 @@
       });
 
       // Export Log Data to CSV
-      exportCsvBtn.addEventListener('click', () => {
+      exportCsvBtn.addEventListener('click', async () => {
         if (!rawLogs || rawLogs.length === 0) {
-          alert("No data available to export.");
+          await showModal({ type: 'alert', message: "No data available to export." });
           return;
         }
 
