@@ -552,7 +552,7 @@
       <form id="edit-student-form">
         <input type="hidden" id="edit-student-id">
         <div style="margin-bottom: 14px;">
-          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">FULL NAME</label>
+          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">FULL NAME (Last Name, First Name M.I.)</label>
           <input type="text" id="edit-student-name" class="search-input" style="width: 100%;" required>
         </div>
         <div style="margin-bottom: 14px;">
@@ -647,7 +647,7 @@
     <div id="tab-logs-view">
       <!-- SEARCH & FILTERS FOR LOGS -->
       <section class="filter-bar">
-        <input type="text" id="filter-search" class="search-input" placeholder="Search by student name or email...">
+        <input type="text" id="filter-search" class="search-input" placeholder="Search by student last name, name or email...">
         
         <select id="filter-year" class="select-filter">
           <option value="ALL">All Year Levels</option>
@@ -674,7 +674,7 @@
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Student Name</th>
+                <th>Student Name (Last Name, First Name M.I.)</th>
                 <th>AdDU Email</th>
                 <th>Year Level</th>
                 <th>Check In</th>
@@ -696,7 +696,7 @@
     <div id="tab-students-view" style="display: none;">
       <!-- SEARCH & FILTERS FOR STUDENTS -->
       <section class="filter-bar">
-        <input type="text" id="filter-student-search" class="search-input" placeholder="Search registered student by name or email...">
+        <input type="text" id="filter-student-search" class="search-input" placeholder="Search registered student by last name, name or email...">
         
         <select id="filter-student-year" class="select-filter">
           <option value="ALL">All Year Levels</option>
@@ -714,7 +714,7 @@
           <table>
             <thead>
               <tr>
-                <th>Student Name</th>
+                <th>Student Name (Last Name, First Name M.I.)</th>
                 <th>AdDU Email</th>
                 <th>Year Level</th>
                 <th style="text-align: right; padding-right: 28px;">Actions</th>
@@ -750,6 +750,65 @@
     }
     const auth = firebase.auth();
     const db = firebase.firestore();
+
+    /**
+     * Helper to parse and format name strings into "Last Name, First Name Middle Initial"
+     * and extract the primary Last Name for alphabetical sorting.
+     */
+    function formatNameToLastFirst(nameStr) {
+      if (!nameStr) return { formatted: '—', lastName: '' };
+      
+      const trimmed = nameStr.trim();
+      if (!trimmed) return { formatted: '—', lastName: '' };
+
+      // Case 1: Name is already in "Last, First Middle" format
+      if (trimmed.includes(',')) {
+        const parts = trimmed.split(',').map(p => p.trim());
+        const lastName = parts[0] || '';
+        const rest = parts[1] || '';
+        const restWords = rest.split(/\s+/).filter(Boolean);
+        
+        if (restWords.length === 0) {
+          return { formatted: lastName, lastName: lastName };
+        }
+        
+        let firstName = '';
+        let middleInitial = '';
+
+        if (restWords.length === 1) {
+          firstName = restWords[0];
+        } else {
+          firstName = restWords.slice(0, restWords.length - 1).join(' ');
+          const lastWord = restWords[restWords.length - 1];
+          const initialChar = lastWord.charAt(0).toUpperCase();
+          if (initialChar) {
+            middleInitial = initialChar + '.';
+          }
+        }
+        const formatted = middleInitial ? `${lastName}, ${firstName} ${middleInitial}` : `${lastName}, ${firstName}`;
+        return { formatted, lastName };
+      }
+
+      // Case 2: Standard "First Middle Last" format
+      const words = trimmed.split(/\s+/).filter(Boolean);
+      if (words.length === 1) {
+        return { formatted: words[0], lastName: words[0] };
+      }
+
+      const lastName = words[words.length - 1];
+      
+      if (words.length === 2) {
+        const firstName = words[0];
+        return { formatted: `${lastName}, ${firstName}`, lastName: lastName };
+      } else {
+        const middlePart = words[words.length - 2];
+        const initialChar = middlePart.charAt(0).toUpperCase();
+        const middleInitial = initialChar ? initialChar + '.' : '';
+        const firstNames = words.slice(0, words.length - 2).join(' ');
+        const formatted = middleInitial ? `${lastName}, ${firstNames} ${middleInitial}` : `${lastName}, ${firstNames}`;
+        return { formatted, lastName };
+      }
+    }
 
     // Custom Modal System Implementation
     function showModal({ type = 'alert', title = 'System Notification', message = '', icon = 'ℹ️', inputPlaceholder = '', confirmText = 'OK', cancelText = 'Cancel', isDanger = false }) {
@@ -1050,7 +1109,7 @@
         metricTodayTotal.textContent = todayLogs;
       }
 
-      // Filter and Render Attendance Logs Table
+      // Filter, Format, and Render Attendance Logs Table Alphabetically by Last Name
       function renderLogsTable() {
         const query = filterSearch.value.trim().toLowerCase();
         const yearVal = filterYear.value;
@@ -1060,22 +1119,28 @@
         const filtered = rawLogs.filter(log => {
           const emailKey = log.email ? log.email.toLowerCase() : '';
           
-          const currentName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : log.fullName;
+          const rawName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : log.fullName;
           const currentYear = (usersMap[emailKey] && usersMap[emailKey].yearLevel) ? usersMap[emailKey].yearLevel : log.yearLevel;
 
+          const parsedName = formatNameToLastFirst(rawName);
+
           const matchesSearch = !query || 
-            (currentName && currentName.toLowerCase().includes(query)) ||
+            (parsedName.formatted && parsedName.formatted.toLowerCase().includes(query)) ||
             (log.email && log.email.toLowerCase().includes(query));
 
           const matchesYear = (yearVal === 'ALL') || (currentYear === yearVal);
           const matchesStatus = (statusVal === 'ALL') || (log.status === statusVal);
           const matchesDate = !dateVal || (log.date === dateVal);
           
-          log._displayName = currentName;
+          log._displayName = parsedName.formatted;
+          log._lastName = parsedName.lastName;
           log._displayYear = currentYear;
 
           return matchesSearch && matchesYear && matchesStatus && matchesDate;
         });
+
+        // Alphabetical sort by Last Name
+        filtered.sort((a, b) => (a._lastName || '').localeCompare(b._lastName || '', undefined, { sensitivity: 'base' }));
 
         if (filtered.length === 0) {
           logsTableBody.innerHTML = `
@@ -1107,18 +1172,28 @@
         }).join('');
       }
 
-      // Filter and Render Registered Students Directory Table
+      // Filter, Format, and Render Registered Students Directory Table Alphabetically by Last Name
       function renderStudentsTable() {
         const query = filterStudentSearch.value.trim().toLowerCase();
         const yearVal = filterStudentYear.value;
 
-        const filtered = rawUsers.filter(user => {
-          const name = user.fullName ? user.fullName.toLowerCase() : '';
+        const filtered = rawUsers.map(user => {
+          const parsedName = formatNameToLastFirst(user.fullName);
+          return {
+            ...user,
+            _displayName: parsedName.formatted,
+            _lastName: parsedName.lastName
+          };
+        }).filter(user => {
+          const name = user._displayName ? user._displayName.toLowerCase() : '';
           const email = user.email ? user.email.toLowerCase() : '';
           const matchesSearch = !query || name.includes(query) || email.includes(query);
           const matchesYear = (yearVal === 'ALL') || (user.yearLevel === yearVal);
           return matchesSearch && matchesYear;
         });
+
+        // Alphabetical sort by Last Name
+        filtered.sort((a, b) => (a._lastName || '').localeCompare(b._lastName || '', undefined, { sensitivity: 'base' }));
 
         if (filtered.length === 0) {
           studentsTableBody.innerHTML = `
@@ -1133,13 +1208,13 @@
         studentsTableBody.innerHTML = filtered.map(user => {
           return `
             <tr>
-              <td><strong>${user.fullName || '—'}</strong></td>
+              <td><strong>${user._displayName || '—'}</strong></td>
               <td>${user.email || '—'}</td>
               <td>${user.yearLevel || '—'}</td>
               <td style="text-align: right;">
                 <div class="action-btn-group" style="justify-content: flex-end;">
                   <button class="btn-action-edit" onclick="openEditStudentModal('${user.id}')">✏️ Edit</button>
-                  <button class="btn-action-kick" onclick="kickOutStudent('${user.id}', '${escapeQuotes(user.fullName)}', '${escapeQuotes(user.email)}')">🚫 Kick Out</button>
+                  <button class="btn-action-kick" onclick="kickOutStudent('${user.id}', '${escapeQuotes(user._displayName)}', '${escapeQuotes(user.email)}')">🚫 Kick Out</button>
                 </div>
               </td>
             </tr>
@@ -1157,19 +1232,21 @@
         const user = rawUsers.find(u => u.id === userId);
         if (!user) return;
 
+        const parsedName = formatNameToLastFirst(user.fullName);
+
         document.getElementById('edit-student-id').value = user.id;
-        document.getElementById('edit-student-name').value = user.fullName || '';
+        document.getElementById('edit-student-name').value = parsedName.formatted !== '—' ? parsedName.formatted : (user.fullName || '');
         document.getElementById('edit-student-email').value = user.email || '';
         document.getElementById('edit-student-year').value = user.yearLevel || '1st Year';
         document.getElementById('edit-student-modal-root').classList.add('active');
       };
 
-      window.kickOutStudent = async function(userId, fullName, email) {
+      window.kickOutStudent = async function(userId, displayName, email) {
         const confirmed = await showModal({
           type: 'confirm',
           title: 'Kick Out Student',
           icon: '⚠️',
-          message: `Are you sure you want to kick out/remove ${fullName || email} from the registered EE students database?`,
+          message: `Are you sure you want to kick out/remove ${displayName || email} from the registered EE students database?`,
           confirmText: 'Kick Out',
           isDanger: true
         });
@@ -1182,7 +1259,7 @@
             type: 'alert',
             title: 'Student Removed',
             icon: '✅',
-            message: `${fullName || email} has been kicked out and removed from registered students.`
+            message: `${displayName || email} has been kicked out and removed from registered students.`
           });
         } catch (err) {
           await showModal({
@@ -1242,7 +1319,7 @@
         el.addEventListener('change', renderStudentsTable);
       });
 
-      // Contextual CSV Export Handler
+      // Contextual CSV Export Handler (Sorted Alphabetically by Last Name)
       exportCsvBtn.addEventListener('click', async () => {
         if (currentTab === 'logs') {
           if (!rawLogs || rawLogs.length === 0) {
@@ -1250,22 +1327,30 @@
             return;
           }
 
-          const headers = ["Date", "Full Name", "Email", "Year Level", "Check-In Time", "Check-Out Time", "Status"];
-          const rows = rawLogs.map(log => {
+          const sortedLogs = [...rawLogs].map(log => {
             const emailKey = log.email ? log.email.toLowerCase() : '';
-            const currentName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : (log.fullName || '');
+            const rawName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : (log.fullName || '');
             const currentYear = (usersMap[emailKey] && usersMap[emailKey].yearLevel) ? usersMap[emailKey].yearLevel : (log.yearLevel || '');
+            const parsedName = formatNameToLastFirst(rawName);
+            
+            return {
+              ...log,
+              _displayName: parsedName.formatted,
+              _lastName: parsedName.lastName,
+              _displayYear: currentYear
+            };
+          }).sort((a, b) => (a._lastName || '').localeCompare(b._lastName || '', undefined, { sensitivity: 'base' }));
 
-            return [
-              `"${log.date || ''}"`,
-              `"${currentName}"`,
-              `"${log.email || ''}"`,
-              `"${currentYear}"`,
-              `"${log.checkInTime || ''}"`,
-              `"${log.checkOutTime || ''}"`,
-              `"${log.status || ''}"`
-            ];
-          });
+          const headers = ["Date", "Student Name (Last Name, First Name M.I.)", "Email", "Year Level", "Check-In Time", "Check-Out Time", "Status"];
+          const rows = sortedLogs.map(log => [
+            `"${log.date || ''}"`,
+            `"${log._displayName || ''}"`,
+            `"${log.email || ''}"`,
+            `"${log._displayYear || ''}"`,
+            `"${log.checkInTime || ''}"`,
+            `"${log.checkOutTime || ''}"`,
+            `"${log.status || ''}"`
+          ]);
 
           downloadCsv(`FUSEE_Lab_Logs_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
         } else {
@@ -1274,9 +1359,18 @@
             return;
           }
 
-          const headers = ["Full Name", "AdDU Email", "Year Level"];
-          const rows = rawUsers.map(user => [
-            `"${user.fullName || ''}"`,
+          const sortedUsers = [...rawUsers].map(user => {
+            const parsedName = formatNameToLastFirst(user.fullName);
+            return {
+              ...user,
+              _displayName: parsedName.formatted,
+              _lastName: parsedName.lastName
+            };
+          }).sort((a, b) => (a._lastName || '').localeCompare(b._lastName || '', undefined, { sensitivity: 'base' }));
+
+          const headers = ["Student Name (Last Name, First Name M.I.)", "AdDU Email", "Year Level"];
+          const rows = sortedUsers.map(user => [
+            `"${user._displayName || ''}"`,
             `"${user.email || ''}"`,
             `"${user.yearLevel || ''}"`
           ]);
