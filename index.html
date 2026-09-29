@@ -826,26 +826,45 @@
         signupView.style.display = 'block';
       });
 
-      // Firebase Auth Observer
+      // Firebase Auth Observer (With Auto-Healing Profile Support)
       auth.onAuthStateChanged(async (user) => {
         if (user) {
           try {
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (userDoc.exists) {
+            const userRef = db.collection('users').doc(user.uid);
+            const userDoc = await userRef.get();
+
+            if (userDoc.exists && userDoc.data().fullName && userDoc.data().fullName !== 'Student') {
               currentUserProfile = userDoc.data();
             } else {
+              // Derive name from display name or email username (e.g. sdayupay -> Sdayupay)
+              let derivedName = user.displayName;
+              if (!derivedName && user.email) {
+                const emailPrefix = user.email.split('@')[0];
+                derivedName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+              }
+
               currentUserProfile = {
-                fullName: user.displayName || 'Student',
+                fullName: derivedName || 'Student',
                 email: user.email,
-                yearLevel: '1st Year'
+                yearLevel: (userDoc.exists && userDoc.data().yearLevel) ? userDoc.data().yearLevel : '1st Year',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
               };
+
+              // Auto-create/update profile in Firestore
+              await userRef.set(currentUserProfile, { merge: true });
             }
+
             showDashboard(currentUserProfile);
             listenToAttendanceStatus(user.uid);
           } catch (err) {
             console.error("Error fetching user profile:", err);
+            let derivedName = user.displayName;
+            if (!derivedName && user.email) {
+              const emailPrefix = user.email.split('@')[0];
+              derivedName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+            }
             currentUserProfile = {
-              fullName: user.displayName || 'Student',
+              fullName: derivedName || 'Student',
               email: user.email,
               yearLevel: '1st Year'
             };
@@ -1062,7 +1081,6 @@
         const now = new Date();
         const todayISO = now.toISOString().slice(0, 10);
         
-        // --- TIME FORMAT FIX ---
         // Explicitly format to 12-hour AM/PM format regardless of device local language settings
         const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
