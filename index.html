@@ -988,7 +988,7 @@
         </label>
 
         <label class="purpose-option-card selected" id="card-table">
-          <input type="radio" name="checkin-purpose-radio" value="Study Table" id="radio-table" checked>
+          <input type="radio" name="checkin-purpose-radio" value="Table" id="radio-table" checked>
           <div class="purpose-card-content">
             <span class="purpose-icon">📚</span>
             <div class="purpose-info">
@@ -1025,9 +1025,7 @@
             </tr>
           </thead>
           <tbody id="timetable-body">
-            <tr>
-              <td colspan="3" style="text-align: center; padding: 16px; color: var(--text-muted);">Loading class schedule...</td>
-            </tr>
+            <!-- Dynamically populated by JS -->
           </tbody>
         </table>
       </div>
@@ -1629,12 +1627,13 @@
             if (doc.exists) {
               const data = doc.data();
               isManuallyLocked = data.manualLock === true;
-              classSchedulesList = Array.isArray(data.classSchedule) ? data.classSchedule : [];
+              classSchedulesList = Array.isArray(data.schedules) ? data.schedules : [];
             } else {
               isManuallyLocked = false;
               classSchedulesList = [];
             }
             refreshLabBannerStatus();
+            renderTimetable(classSchedulesList);
           }, (err) => {
             console.warn("Error subscribing to lab config:", err);
             refreshLabBannerStatus();
@@ -1974,7 +1973,7 @@
         const user = auth.currentUser;
         if (!user || !currentUserProfile) return;
 
-        const selectedPurpose = radioPc.checked && !radioPc.disabled ? 'PC' : 'Study Table';
+        const selectedPurpose = (radioPc.checked && !radioPc.disabled) ? 'PC' : 'Table';
         closePurposeModal();
 
         actionBtn.disabled = true;
@@ -1985,20 +1984,20 @@
         const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
         try {
-          // Atomic Firestore Transaction to ensure PC limit (10) is strictly respected
-          await db.runTransaction(async (transaction) => {
-            if (selectedPurpose === 'PC') {
-              const activePcQuery = db.collection('attendance_logs')
-                .where('status', '==', 'IN')
-                .where('purpose', '==', 'PC');
+          if (selectedPurpose === 'PC') {
+            const activePcQuery = db.collection('attendance_logs')
+              .where('status', '==', 'IN')
+              .where('purpose', '==', 'PC');
 
-              const activePcSnap = await transaction.get(activePcQuery);
+            const activePcSnap = await activePcQuery.get();
 
-              if (activePcSnap.size >= 10) {
-                throw new Error("PC Workstations just reached full capacity (10/10). Please select Study Table instead.");
-              }
+            if (activePcSnap.size >= 10) {
+              throw new Error("PC Workstations just reached full capacity (10/10). Please select Study Table instead.");
             }
+          }
 
+          // Atomic Firestore Transaction to insert the log
+          await db.runTransaction(async (transaction) => {
             const newLogRef = db.collection('attendance_logs').doc();
             transaction.set(newLogRef, {
               userId: user.uid,
@@ -2017,7 +2016,7 @@
           localStorage.setItem('last_lab_action', Date.now().toString());
 
         } catch (err) {
-          console.error("Atomic check-in failed:", err);
+          console.error("Check-in failed:", err);
           showAlert("Check-In Error", err.message || "Failed to check in. Please try again.");
           actionBtn.disabled = false;
           actionBtn.textContent = 'CHECK IN TO LABORATORY';
@@ -2115,34 +2114,32 @@
       }
 
       // Weekly Timetable Modal Logic
-      function renderTimetable() {
+      function renderTimetable(schedules) {
         timetableBody.innerHTML = '';
 
-        if (!classSchedulesList || classSchedulesList.length === 0) {
-          // Default sample schedule if Firestore labConfig doc has no custom classSchedule array yet
-          const defaultSchedule = [
-            { day: "Monday", time: "09:00 AM - 12:00 PM", course: "EE 311 (Microprocessors Lab)" },
-            { day: "Tuesday", time: "01:00 PM - 04:00 PM", course: "EE 412 (Power Systems Systems Lab)" },
-            { day: "Wednesday", time: "08:00 AM - 11:00 AM", course: "EE 214 (Circuits Analysis Lab)" },
-            { day: "Thursday", time: "02:00 PM - 05:00 PM", course: "EE 322 (Control Systems Lab)" },
-            { day: "Friday", time: "10:00 AM - 12:00 PM", course: "EE 101 (Intro to EE Computing)" },
-            { day: "Saturday", time: "08:30 AM - 11:30 AM", course: "EE 501 (Capstone Research)" }
-          ];
-
-          defaultSchedule.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td class="day-badge">${item.day}</td>
-              <td class="time-badge">${item.time}</td>
-              <td class="course-badge">${item.course}</td>
-            `;
-            timetableBody.appendChild(tr);
-          });
+        if (!schedules || schedules.length === 0) {
+          timetableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 16px; color: var(--text-muted);">No class sessions scheduled</td></tr>`;
           return;
         }
 
+        const dayOrder = {
+          "Monday": 1, "Tuesday": 2, "Wednesday": 3,
+          "Thursday": 4, "Friday": 5, "Saturday": 6, "Sunday": 7
+        };
+
+        const sortedSchedules = [...schedules].sort((a, b) => {
+          const dayA = dayOrder[a.day] || 99;
+          const dayB = dayOrder[b.day] || 99;
+          
+          if (dayA !== dayB) return dayA - dayB;
+          
+          const timeA = a.startTime || '00:00';
+          const timeB = b.startTime || '00:00';
+          return timeA.localeCompare(timeB);
+        });
+
         // Render dynamically fetched schedule list from Firestore
-        classSchedulesList.forEach(item => {
+        sortedSchedules.forEach(item => {
           const tr = document.createElement('tr');
           const timeStr = `${item.startTime || '00:00'} - ${item.endTime || '00:00'}`;
           tr.innerHTML = `
@@ -2155,7 +2152,7 @@
       }
 
       openTimetableBtn.addEventListener('click', () => {
-        renderTimetable();
+        renderTimetable(classSchedulesList);
         timetableModal.classList.add('active');
       });
 
