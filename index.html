@@ -1237,7 +1237,7 @@
 
       <!-- Real-time Lab Operating Status Banner -->
       <div id="lab-status-banner" class="lab-status-banner lab-status-open">
-        <span>🟢 Laboratory is Currently Open (24/7)</span>
+        <span>🟢 Laboratory is Currently Open</span>
       </div>
 
       <!-- Schedule Class Lockout Warning Banner -->
@@ -1417,6 +1417,8 @@
       let activeTotalCount = 0;
 
       let isManuallyLocked = false;
+      let labOpenTime = null;
+      let labCloseTime = null;
       let activeClassSession = null;
       let classSchedulesList = [];
       let activeTabDay = "";
@@ -1424,6 +1426,13 @@
       let unsubscribeLogListener = null;
       let unsubscribeConfigListener = null;
       let unsubscribeOccupancyListener = null;
+
+      // Real-time loop to continuously evaluate Time Logic
+      setInterval(() => {
+        if (currentUserProfile) {
+          refreshLabBannerStatus();
+        }
+      }, 60000); // Check every minute
 
       // 12-Hour Time Formatter function
       function formatTime12Hour(timeStr) {
@@ -1515,17 +1524,24 @@
         });
       });
 
-      // 1. Operating Hours Check (Always open - 24/7 mode)
+      // 1. Operating Hours Dynamic Time Check
       function isLabOpen() {
-        return true;
+        if (!labOpenTime || !labCloseTime) return true; // Default to 24/7 if not configured
+
+        const now = new Date();
+        const currentHours = now.getHours();
+        const currentMinutes = now.getMinutes();
+        const currentTimeStr = `${currentHours.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')}`;
+        
+        return currentTimeStr >= labOpenTime && currentTimeStr < labCloseTime;
       }
 
-      // 2. Schedule Lockout Engine (Disabled - 24/7 mode allows check-ins anytime)
+      // 2. Schedule Lockout Engine (Disabled - handled solely by banner visual states unless class logic exists)
       function evaluateActiveSchedule(scheduleArray) {
-        return null;
+        return null; // Function preserved as per original skeleton
       }
 
-      // Refresh Top Banner and Status State
+      // Refresh Top Banner and Status State based on Operating Hours
       function refreshLabBannerStatus() {
         if (!labStatusBanner) return;
 
@@ -1533,16 +1549,20 @@
         const scheduleState = evaluateActiveSchedule(classSchedulesList);
         activeClassSession = scheduleState;
 
+        let openStr = labOpenTime ? formatTime12Hour(labOpenTime) : '';
+        let closeStr = labCloseTime ? formatTime12Hour(labCloseTime) : '';
+        let hoursText = (openStr && closeStr) ? `${openStr} - ${closeStr}` : '24/7';
+
         // Admin / Operating Status Banner
         if (isManuallyLocked) {
           labStatusBanner.className = 'lab-status-banner lab-status-locked';
           labStatusBanner.innerHTML = '🔒 Check-Ins Locked by Administrator';
         } else if (open) {
           labStatusBanner.className = 'lab-status-banner lab-status-open';
-          labStatusBanner.innerHTML = '🟢 Laboratory is Currently Open (24/7)';
+          labStatusBanner.innerHTML = `🟢 Laboratory is Currently Open (${hoursText})`;
         } else {
           labStatusBanner.className = 'lab-status-banner lab-status-closed';
-          labStatusBanner.innerHTML = '🔴 Laboratory is Currently Closed';
+          labStatusBanner.innerHTML = `🔴 Laboratory is Currently Closed (Hours: ${hoursText})`;
         }
 
         // Warning Banner
@@ -1687,9 +1707,13 @@
             if (doc.exists) {
               const data = doc.data();
               isManuallyLocked = data.manualLock === true;
+              labOpenTime = data.openTime || null;
+              labCloseTime = data.closeTime || null;
               classSchedulesList = Array.isArray(data.schedules) ? data.schedules : [];
             } else {
               isManuallyLocked = false;
+              labOpenTime = null;
+              labCloseTime = null;
               classSchedulesList = [];
             }
             refreshLabBannerStatus();
@@ -2149,23 +2173,30 @@
         openPurposeModal();
       });
 
-      // Update Action Button State and Labels based on Lockouts
+      // Update Action Button State and Labels based on Lockouts and Operating Hours
       function updateStatusUI() {
         actionBtn.disabled = false;
+
+        const labIsOpen = isLabOpen();
 
         if (isCheckedIn) {
           statusIndicator.className = 'status-pill status-in';
           statusText.textContent = 'CHECKED IN';
           actionBtn.textContent = 'CHECK OUT OF LABORATORY';
           actionBtn.className = 'btn btn-checkout';
-          actionBtn.disabled = false;
+          
+          if (!labIsOpen) {
+            actionBtn.disabled = true;
+          } else {
+            actionBtn.disabled = false;
+          }
         } else {
           statusIndicator.className = 'status-pill status-out';
           statusText.textContent = 'CHECKED OUT';
           actionBtn.textContent = 'CHECK IN TO LABORATORY';
           actionBtn.className = 'btn btn-checkin';
 
-          if (isManuallyLocked) {
+          if (isManuallyLocked || !labIsOpen) {
             actionBtn.disabled = true;
           } else {
             actionBtn.disabled = false;

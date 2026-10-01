@@ -109,6 +109,18 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .operating-hours-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f1f5f9;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      flex-wrap: wrap;
     }
 
     .btn {
@@ -656,6 +668,20 @@
         </div>
       </div>
       <div class="admin-controls">
+        <!-- Operating Hours Time Pickers -->
+        <div class="operating-hours-bar">
+          <span style="font-size: 0.8rem; font-weight: 800; color: var(--text-primary); white-space: nowrap;">⏰ Operating Hours:</span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <label for="open-time-input" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary);">Open</label>
+            <input type="time" id="open-time-input" class="time-filter" style="padding: 6px 10px; font-size: 0.82rem;">
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <label for="close-time-input" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary);">Close</label>
+            <input type="time" id="close-time-input" class="time-filter" style="padding: 6px 10px; font-size: 0.82rem;">
+          </div>
+          <button id="save-hours-btn" class="btn" style="background: var(--brand-purple); color: #fff; padding: 8px 14px; font-size: 0.8rem;">Save Hours</button>
+        </div>
+
         <!-- Manual Lock Toggle Button -->
         <button id="toggle-lock-btn" class="btn" style="background: #f59e0b; color: #fff;">
           🔒 Lock Check-Ins
@@ -955,6 +981,11 @@
       const loginErr = document.getElementById('admin-login-error');
       const logoutBtn = document.getElementById('admin-logout-btn');
 
+      // Operating Hours UI Controls
+      const openTimeInput = document.getElementById('open-time-input');
+      const closeTimeInput = document.getElementById('close-time-input');
+      const saveHoursBtn = document.getElementById('save-hours-btn');
+
       // Tab Elements
       const tabBtnLogs = document.getElementById('tab-btn-logs');
       const tabBtnStudents = document.getElementById('tab-btn-students');
@@ -1001,6 +1032,8 @@
       let rawUsers = [];
       let rawWhitelist = [];
       let globalSchedules = [];
+      let globalOpenTime = '';
+      let globalCloseTime = '';
       let usersMap = {}; 
       let unsubscribeLogs = null;
       let unsubscribeUsers = null;
@@ -1077,7 +1110,7 @@
         listenToLogs();
         listenToWhitelist();
         
-        // Execute background sweep evaluation every 60 seconds to catch precise class start times
+        // Execute background sweep evaluation every 60 seconds to catch precise class start times and close times
         setInterval(() => {
           if (rawLogs && rawLogs.length > 0) {
             runAutoCheckoutSweep(rawLogs);
@@ -1085,7 +1118,7 @@
         }, 60000); 
       }
 
-      // Initialize Settings, Locks & Schedules
+      // Initialize Settings, Locks, Schedules & Operating Hours
       function listenToConfig() {
         if (unsubscribeConfig) unsubscribeConfig();
         unsubscribeConfig = db.collection('settings').doc('labConfig').onSnapshot(doc => {
@@ -1094,10 +1127,53 @@
             isLocked = !!data.manualLock;
             toggleLockBtn.textContent = isLocked ? '🔓 Unlock Check-Ins' : '🔒 Lock Check-Ins';
             globalSchedules = data.schedules || [];
+            globalOpenTime = data.openTime || '';
+            globalCloseTime = data.closeTime || '';
+
+            if (openTimeInput && document.activeElement !== openTimeInput) {
+              openTimeInput.value = globalOpenTime;
+            }
+            if (closeTimeInput && document.activeElement !== closeTimeInput) {
+              closeTimeInput.value = globalCloseTime;
+            }
+
             renderSchedulesTable();
           } else {
             globalSchedules = [];
+            globalOpenTime = '';
+            globalCloseTime = '';
+            if (openTimeInput) openTimeInput.value = '';
+            if (closeTimeInput) closeTimeInput.value = '';
             renderSchedulesTable();
+          }
+        });
+      }
+
+      // Save Operating Hours to settings/labConfig
+      if (saveHoursBtn) {
+        saveHoursBtn.addEventListener('click', async () => {
+          const openVal = openTimeInput ? openTimeInput.value : '';
+          const closeVal = closeTimeInput ? closeTimeInput.value : '';
+
+          try {
+            await db.collection('settings').doc('labConfig').set({
+              openTime: openVal,
+              closeTime: closeVal
+            }, { merge: true });
+
+            await showModal({
+              type: 'alert',
+              title: 'Operating Hours Saved',
+              icon: '⏰',
+              message: `Operating hours updated successfully: Open at ${openVal || 'N/A'}, Close at ${closeVal || 'N/A'}.`
+            });
+          } catch (err) {
+            await showModal({
+              type: 'alert',
+              title: 'Error',
+              icon: '❌',
+              message: 'Failed to update operating hours: ' + err.message
+            });
           }
         });
       }
@@ -1156,7 +1232,7 @@
         });
       }
 
-      // Automated Log Sweep Routine without fixed curfew time restrictions
+      // Automated Log Sweep Routine for Class Schedules and Global Operating Hours
       async function runAutoCheckoutSweep(logs) {
         const now = new Date();
         const todayISO = now.toISOString().slice(0, 10);
@@ -1166,7 +1242,14 @@
         const currentHHMM = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
         
         let isSweepTrigger = false;
-        
+        let isClosingTimeTrigger = false;
+
+        // Trigger auto-checkout if global closeTime is reached or passed
+        if (globalCloseTime && currentHHMM >= globalCloseTime) {
+          isSweepTrigger = true;
+          isClosingTimeTrigger = true;
+        }
+
         // Exact class start time trigger
         const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const todayName = daysMap[dayOfWeek];
@@ -1194,11 +1277,15 @@
         const batch = db.batch();
         pendingSweepLogs.forEach(log => {
           const docRef = db.collection('attendance_logs').doc(log.id);
+          const reason = (log.date && log.date < todayISO) 
+            ? 'Overnight / Unclosed Sweep' 
+            : (isClosingTimeTrigger ? 'Closing Time Auto-Checkout' : 'Scheduled Sweep');
+
           batch.update(docRef, {
             status: 'OUT',
             checkOutTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
             checkedOutBy: 'auto_sweep',
-            checkoutReason: 'Scheduled Sweep',
+            checkoutReason: reason,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         });
@@ -1347,7 +1434,7 @@
               <td>${formatTimeHHMM(sched.endTime)}</td>
               <td style="text-align: right;">
                 <div class="action-btn-group" style="justify-content: flex-end;">
-                  <button class="btn-action-edit" onclick="openScheduleModal('${sched.id}')">✏️ Edit</button>
+                  <button class="btn-action-edit" onclick="openScheduleModal('${sched.id}')">✏️️ Edit</button>
                   <button class="btn-action-danger" onclick="deleteSchedule('${sched.id}')">🗑️ Delete</button>
                 </div>
               </td>
