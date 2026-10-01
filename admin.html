@@ -17,6 +17,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  
+  <!-- ExcelJS Library for XLSX Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 
   <!-- Admin Theme Styling -->
   <style>
@@ -657,12 +660,12 @@
           🔒 Lock Check-Ins
         </button>
 
-        <button id="export-csv-btn" class="btn btn-export">
+        <button id="export-excel-btn" class="btn btn-export">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
             <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
             <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
           </svg>
-          Export CSV
+          Export to Excel
         </button>
         <button id="admin-logout-btn" class="btn btn-logout">Logout</button>
       </div>
@@ -940,7 +943,7 @@
       const filterStudentSearch = document.getElementById('filter-student-search');
       const filterStudentYear = document.getElementById('filter-student-year');
 
-      const exportCsvBtn = document.getElementById('export-csv-btn');
+      const exportExcelBtn = document.getElementById('export-excel-btn');
       const logsTableBody = document.getElementById('logs-table-body');
       const studentsTableBody = document.getElementById('students-table-body');
       const schedulesTableBody = document.getElementById('schedules-table-body');
@@ -1445,35 +1448,83 @@
         el.addEventListener('change', renderStudentsTable);
       });
 
-      // CSV Export
-      exportCsvBtn.addEventListener('click', async () => {
+      // ExcelJS Export Logic
+      exportExcelBtn.addEventListener('click', async () => {
+        if (typeof ExcelJS === 'undefined') {
+            await showModal({ type: 'alert', title: 'Export Error', icon: '❌', message: 'ExcelJS library failed to load.' });
+            return;
+        }
+
+        const workbook = new ExcelJS.Workbook();
+
         if (currentTab === 'logs') {
           if (!rawLogs || rawLogs.length === 0) {
             await showModal({ type: 'alert', title: 'Export Failed', icon: '📉', message: "No log data available to export." });
             return;
           }
 
-          const headers = ["Date", "Full Name", "Email", "Year Level", "Purpose", "Check-In Time", "Check-Out Time", "Status", "Action By", "Reason"];
-          const rows = rawLogs.map(log => {
+          const worksheet = workbook.addWorksheet('Attendance Logs');
+          worksheet.views = [{ state: 'frozen', xSplit: 0, ySplit: 1 }];
+
+          worksheet.columns = [
+            { header: 'Date', key: 'date', style: { alignment: { horizontal: 'center' } } },
+            { header: 'Student Name', key: 'name', style: { alignment: { horizontal: 'left' } } },
+            { header: 'AdDU Email', key: 'email', style: { alignment: { horizontal: 'left' } } },
+            { header: 'Year Level', key: 'year', style: { alignment: { horizontal: 'center' } } },
+            { header: 'Purpose', key: 'purpose', style: { alignment: { horizontal: 'left' } } },
+            { header: 'Check In', key: 'checkIn', style: { alignment: { horizontal: 'center' } } },
+            { header: 'Check Out', key: 'checkOut', style: { alignment: { horizontal: 'center' } } },
+            { header: 'Status', key: 'status', style: { alignment: { horizontal: 'center' } } },
+            { header: 'Action By', key: 'actionBy', style: { alignment: { horizontal: 'center' } } },
+            { header: 'Reason', key: 'reason', style: { alignment: { horizontal: 'left' } } }
+          ];
+
+          // Format Header Row
+          const headerRow = worksheet.getRow(1);
+          headerRow.eachCell((cell) => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          });
+
+          rawLogs.forEach((log, index) => {
             const emailKey = log.email ? log.email.toLowerCase() : '';
             const currentName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : (log.fullName || '');
             const currentYear = (usersMap[emailKey] && usersMap[emailKey].yearLevel) ? usersMap[emailKey].yearLevel : (log.yearLevel || '');
 
-            return [
-              `"${log.date || ''}"`,
-              `"${currentName}"`,
-              `"${log.email || ''}"`,
-              `"${currentYear}"`,
-              `"${log.purpose || ''}"`,
-              `"${log.checkInTime || ''}"`,
-              `"${log.checkOutTime || ''}"`,
-              `"${log.status || ''}"`,
-              `"${log.checkedOutBy || 'student'}"`,
-              `"${log.checkoutReason || ''}"`
-            ];
+            const row = worksheet.addRow({
+              date: log.date || '',
+              name: currentName,
+              email: log.email || '',
+              year: currentYear,
+              purpose: log.purpose || '',
+              checkIn: log.checkInTime || '',
+              checkOut: log.checkOutTime || '',
+              status: log.status || '',
+              actionBy: log.checkedOutBy || 'student',
+              reason: log.checkoutReason || ''
+            });
+
+            // Alternate Row Colors (Very light gray vs white)
+            const bgColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF3F4F6'; 
+            row.eachCell({ includeEmpty: true }, (cell) => {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+            });
+
+            // Status Badge Formatting
+            const statusCell = row.getCell('status');
+            if (log.status === 'IN') {
+              statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
+              statusCell.font = { color: { argb: 'FF065F46' }, bold: true };
+            } else if (log.status === 'OUT') {
+              statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } };
+              statusCell.font = { color: { argb: 'FF991B1B' }, bold: true };
+            }
           });
 
-          downloadCsv(`FUSEE_Lab_Logs_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+          autoFitColumns(worksheet);
+          triggerDownload(workbook, `FUSEE_Lab_Logs_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
         } else if (currentTab === 'students') {
           if (!rawUsers || rawUsers.length === 0) {
             await showModal({ type: 'alert', title: 'Export Failed', icon: '📉', message: "No registered students data to export." });
@@ -1490,24 +1541,68 @@
             return (a.fullName || '').localeCompare(b.fullName || '');
           });
 
-          const headers = ["Full Name", "AdDU Email", "Year Level"];
-          const rows = sortedUsers.map(user => [ `"${user.fullName || ''}"`, `"${user.email || ''}"`, `"${user.yearLevel || ''}"` ]);
+          const worksheet = workbook.addWorksheet('Registered Students');
+          worksheet.views = [{ state: 'frozen', xSplit: 0, ySplit: 1 }];
 
-          downloadCsv(`FUSEE_Registered_Students_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+          worksheet.columns = [
+            { header: 'Student Name', key: 'name', style: { alignment: { horizontal: 'left' } } },
+            { header: 'AdDU Email', key: 'email', style: { alignment: { horizontal: 'left' } } },
+            { header: 'Year Level', key: 'year', style: { alignment: { horizontal: 'center' } } }
+          ];
+
+          const headerRow = worksheet.getRow(1);
+          headerRow.eachCell((cell) => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          });
+
+          sortedUsers.forEach((user, index) => {
+            const row = worksheet.addRow({
+              name: user.fullName || '',
+              email: user.email || '',
+              year: user.yearLevel || ''
+            });
+            const bgColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF3F4F6';
+            row.eachCell({ includeEmpty: true }, (cell) => {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+            });
+          });
+
+          autoFitColumns(worksheet);
+          triggerDownload(workbook, `FUSEE_Registered_Students_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
         } else {
             await showModal({ type: 'alert', title: 'Notice', icon: 'ℹ️', message: "Export is only available for Logs and Student Directory." });
         }
       });
 
-      function downloadCsv(filename, headers, rows) {
-        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", filename);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      // Helper function to dynamically auto-fit columns
+      function autoFitColumns(worksheet) {
+        worksheet.columns.forEach(column => {
+          let maxLength = 0;
+          column.eachCell({ includeEmpty: true }, cell => {
+            const columnLength = cell.value ? cell.value.toString().length : 10;
+            if (columnLength > maxLength) {
+              maxLength = columnLength;
+            }
+          });
+          column.width = maxLength < 10 ? 10 : maxLength + 2;
+        });
+      }
+
+      // Helper function to compile and download the buffer
+      async function triggerDownload(workbook, filename) {
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
       }
     });
   </script>

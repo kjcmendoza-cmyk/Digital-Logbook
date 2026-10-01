@@ -844,7 +844,7 @@
       gap: 10px;
     }
 
-    /* Timetable Modal Header & Table */
+    /* Timetable Modal Tabs & Table */
     .modal-header-flex {
       display: flex;
       align-items: center;
@@ -867,12 +867,50 @@
       color: var(--text-primary);
     }
 
+    .schedule-tabs {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      margin-bottom: 12px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+    
+    .schedule-tabs::-webkit-scrollbar { 
+      display: none; 
+    }
+
+    .tab-btn {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .tab-btn:hover {
+      background: #e2e8f0;
+    }
+
+    .tab-btn.active {
+      background: var(--brand-purple);
+      color: white;
+      border-color: var(--brand-purple);
+    }
+
     .table-container {
-      max-height: 320px;
+      max-height: 280px;
       overflow-y: auto;
       border-radius: var(--radius-sm);
       border: 1px solid #e2e8f0;
-      margin-top: 10px;
       background: #ffffff;
     }
 
@@ -898,7 +936,7 @@
     }
 
     .timetable td {
-      padding: 10px 12px;
+      padding: 12px;
       border-bottom: 1px solid #f1f5f9;
       color: var(--text-primary);
       vertical-align: middle;
@@ -912,20 +950,37 @@
       background: #f1f5f9;
     }
 
-    .day-badge {
-      font-weight: 800;
-      color: var(--brand-purple-dark);
-    }
-
     .time-badge {
       font-weight: 600;
       color: var(--text-secondary);
       white-space: nowrap;
+      width: 40%;
     }
 
     .course-badge {
       font-weight: 700;
       color: var(--text-primary);
+    }
+
+    .empty-schedule-state {
+      text-align: center;
+      padding: 30px 16px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: var(--radius-sm);
+    }
+
+    .empty-schedule-state .icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .empty-schedule-state p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+      line-height: 1.5;
     }
 
     /* Small Mobile Screen Optimizations */
@@ -1006,21 +1061,36 @@
     </div>
   </div>
 
-  <!-- 3. Weekly Timetable Modal -->
+  <!-- 3. Weekly Timetable Modal with Tabs -->
   <div id="timetable-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="timetable-modal-title">
     <div class="modal-box modal-box-large">
       <div class="modal-header-flex">
-        <h3 id="timetable-modal-title" class="modal-title">📅 Weekly Class Schedule</h3>
+        <h3 id="timetable-modal-title" class="modal-title">📅 Class Schedule</h3>
         <button id="close-timetable-top" class="close-icon-btn" type="button" aria-label="Close Schedule">&times;</button>
       </div>
-      <p class="modal-subtext">Mon–Sat Computer Laboratory Reserved Hours</p>
+      <p class="modal-subtext">Computer Laboratory Reserved Hours</p>
 
-      <div class="table-container">
+      <div class="schedule-tabs" id="schedule-tabs">
+        <button class="tab-btn" data-day="Monday">Mon</button>
+        <button class="tab-btn" data-day="Tuesday">Tue</button>
+        <button class="tab-btn" data-day="Wednesday">Wed</button>
+        <button class="tab-btn" data-day="Thursday">Thu</button>
+        <button class="tab-btn" data-day="Friday">Fri</button>
+        <button class="tab-btn" data-day="Saturday">Sat</button>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-schedule-state" class="empty-schedule-state" style="display: none;">
+        <span class="icon">📅</span>
+        <p>No Classes Scheduled. The computer lab is free for walk-ins / open study.</p>
+      </div>
+
+      <!-- Table State -->
+      <div class="table-container" id="schedule-table-container">
         <table class="timetable">
           <thead>
             <tr>
-              <th>Day</th>
-              <th>Time</th>
+              <th>Time Slot</th>
               <th>Course / Class Session</th>
             </tr>
           </thead>
@@ -1030,7 +1100,7 @@
         </table>
       </div>
 
-      <button id="close-timetable-btn" type="button" class="btn btn-secondary" style="margin-top: 14px;">Close Schedule</button>
+      <button id="close-timetable-btn" type="button" class="btn btn-secondary" style="margin-top: 16px;">Close Schedule</button>
     </div>
   </div>
 
@@ -1320,12 +1390,17 @@
       const confirmPurposeBtn = document.getElementById('confirm-purpose-btn');
       const cancelPurposeBtn = document.getElementById('cancel-purpose-btn');
 
-      // Timetable Modal
+      // Timetable Modal UI
       const timetableModal = document.getElementById('timetable-modal');
       const openTimetableBtn = document.getElementById('open-timetable-btn');
       const closeTimetableBtn = document.getElementById('close-timetable-btn');
       const closeTimetableTop = document.getElementById('close-timetable-top');
       const timetableBody = document.getElementById('timetable-body');
+      
+      // New Tab Logic UI Elements
+      const scheduleTabs = document.querySelectorAll('.tab-btn');
+      const emptyScheduleState = document.getElementById('empty-schedule-state');
+      const scheduleTableContainer = document.getElementById('schedule-table-container');
 
       // Input Form elements
       const regNameInput = document.getElementById('reg-name');
@@ -1363,6 +1438,7 @@
       let isManuallyLocked = false;
       let activeClassSession = null; // { courseName, day, startTime, endTime }
       let classSchedulesList = [];
+      let activeTabDay = "";
 
       let unsubscribeLogListener = null;
       let unsubscribeConfigListener = null;
@@ -1417,6 +1493,37 @@
 
         [nameErr, emailErr, yearErr, passErr, loginEmailErr, loginPassErr, resetEmailErr, editNameErr, editYearErr].forEach(e => e && (e.style.display = 'none'));
       }
+
+      // Initialize the Default Active Tab based on Current Day
+      function initTabs() {
+        const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        let today = daysMap[new Date().getDay()];
+        
+        // If Sunday (closed), default view to Monday
+        if (today === "Sunday") today = "Monday";
+        
+        activeTabDay = today;
+        updateTabsUI();
+      }
+
+      function updateTabsUI() {
+        scheduleTabs.forEach(tab => {
+          if (tab.dataset.day === activeTabDay) {
+            tab.classList.add('active');
+            tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          } else {
+            tab.classList.remove('active');
+          }
+        });
+      }
+
+      scheduleTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          activeTabDay = tab.dataset.day;
+          updateTabsUI();
+          renderTimetable(classSchedulesList);
+        });
+      });
 
       // 1. Operating Hours Check (Mon-Fri 7:30 AM - 9:00 PM | Sat 7:30 AM - 6:00 PM | Sun Closed)
       function isLabOpen() {
@@ -1633,7 +1740,11 @@
               classSchedulesList = [];
             }
             refreshLabBannerStatus();
-            renderTimetable(classSchedulesList);
+            
+            // Re-render if timetable modal is currently open
+            if (timetableModal.classList.contains('active')) {
+              renderTimetable(classSchedulesList);
+            }
           }, (err) => {
             console.warn("Error subscribing to lab config:", err);
             refreshLabBannerStatus();
@@ -2113,37 +2224,37 @@
         }
       }
 
-      // Weekly Timetable Modal Logic
+      // Weekly Timetable Logic via Tabbed UI
       function renderTimetable(schedules) {
         timetableBody.innerHTML = '';
+        
+        // Filter based on currently active tab day
+        const filteredSchedules = (schedules || []).filter(item => 
+          item.day && item.day.toLowerCase() === activeTabDay.toLowerCase()
+        );
 
-        if (!schedules || schedules.length === 0) {
-          timetableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 16px; color: var(--text-muted);">No class sessions scheduled</td></tr>`;
+        // Empty state check
+        if (!filteredSchedules || filteredSchedules.length === 0) {
+          emptyScheduleState.style.display = 'block';
+          scheduleTableContainer.style.display = 'none';
           return;
         }
 
-        const dayOrder = {
-          "Monday": 1, "Tuesday": 2, "Wednesday": 3,
-          "Thursday": 4, "Friday": 5, "Saturday": 6, "Sunday": 7
-        };
+        // Show table
+        emptyScheduleState.style.display = 'none';
+        scheduleTableContainer.style.display = 'block';
 
-        const sortedSchedules = [...schedules].sort((a, b) => {
-          const dayA = dayOrder[a.day] || 99;
-          const dayB = dayOrder[b.day] || 99;
-          
-          if (dayA !== dayB) return dayA - dayB;
-          
+        const sortedSchedules = [...filteredSchedules].sort((a, b) => {
           const timeA = a.startTime || '00:00';
           const timeB = b.startTime || '00:00';
           return timeA.localeCompare(timeB);
         });
 
-        // Render dynamically fetched schedule list from Firestore
+        // Render schedule lists to the table
         sortedSchedules.forEach(item => {
           const tr = document.createElement('tr');
           const timeStr = `${item.startTime || '00:00'} - ${item.endTime || '00:00'}`;
           tr.innerHTML = `
-            <td class="day-badge">${item.day || 'Mon'}</td>
             <td class="time-badge">${timeStr}</td>
             <td class="course-badge">${item.courseName || item.subject || 'Class Session'}</td>
           `;
@@ -2152,6 +2263,7 @@
       }
 
       openTimetableBtn.addEventListener('click', () => {
+        initTabs(); 
         renderTimetable(classSchedulesList);
         timetableModal.classList.add('active');
       });
