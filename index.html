@@ -1362,6 +1362,37 @@
       sunday: null // Closed
     };
 
+    // Robust Time String Parser (Handles "11:12 PM", "23:12", "11:12", etc.)
+    function parseTimeToMinutes(timeStr) {
+      if (!timeStr) return 0;
+      const isPM = timeStr.toLowerCase().includes('pm');
+      const isAM = timeStr.toLowerCase().includes('am');
+      
+      const cleanStr = timeStr.replace(/(am|pm|\s)/gi, '');
+      let [hours, minutes] = cleanStr.split(':').map(Number);
+      if (isNaN(hours)) hours = 0;
+      if (isNaN(minutes)) minutes = 0;
+
+      if (isPM && hours < 12) hours += 12;
+      if (isAM && hours === 12) hours = 0;
+
+      return (hours * 60) + minutes;
+    }
+
+    // 12-Hour Time Formatter for Display
+    function formatTime12Hour(timeStr) {
+      if (!timeStr) return '';
+      if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) {
+        return timeStr;
+      }
+      let [hours, minutes] = timeStr.split(':');
+      hours = parseInt(hours, 10);
+      if (isNaN(hours)) return timeStr;
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      return `${hours}:${minutes.padStart(2, '0')} ${ampm}`;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       // View Elements
       const signupView = document.getElementById('signup-view');
@@ -1474,16 +1505,6 @@
       let unsubscribeConfigListener = null;
       let unsubscribeOccupancyListener = null;
 
-      // 12-Hour Time Formatter
-      function formatTime12Hour(timeStr) {
-        if (!timeStr) return '';
-        let [hours, minutes] = timeStr.split(':');
-        hours = parseInt(hours, 10);
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12 || 12;
-        return `${hours}:${minutes.padStart(2, '0')} ${ampm}`;
-      }
-
       function showAlert(title, message) {
         modalTitle.textContent = title;
         modalMsg.textContent = message;
@@ -1569,11 +1590,11 @@
         });
       });
 
-      // Operating Hours Evaluator (Reads dynamic settings/labConfig or falls back to 09:00–21:00)
+      // Dynamic Operating Hours Evaluator
       function isLabOpen() {
         const now = new Date();
         const day = now.getDay(); // 0 = Sunday, 1 = Mon, ..., 6 = Sat
-        const currentMins = now.getHours() * 60 + now.getMinutes();
+        const currentMins = (now.getHours() * 60) + now.getMinutes();
 
         if (day === 0) return false; // Sunday closed by default
 
@@ -1590,11 +1611,12 @@
           }
         }
 
-        const [openH, openM] = openStr.split(':').map(Number);
-        const [closeH, closeM] = closeStr.split(':').map(Number);
+        const openMins = parseTimeToMinutes(openStr);
+        const closeMins = parseTimeToMinutes(closeStr);
 
-        const openMins = openH * 60 + openM;
-        const closeMins = closeH * 60 + closeM;
+        if (closeMins < openMins) {
+          return currentMins >= openMins || currentMins < closeMins;
+        }
 
         return currentMins >= openMins && currentMins < closeMins;
       }
@@ -1609,7 +1631,7 @@
         }
 
         const todayName = DAYS_MAP[dayIdx];
-        const currentMins = now.getHours() * 60 + now.getMinutes();
+        const currentMins = (now.getHours() * 60) + now.getMinutes();
 
         if (!classSchedulesList || !Array.isArray(classSchedulesList)) return null;
 
@@ -1617,11 +1639,8 @@
           if (!item.day || !item.startTime || !item.endTime) continue;
 
           if (item.day.toLowerCase() === todayName.toLowerCase()) {
-            const [startH, startM] = item.startTime.split(':').map(Number);
-            const [endH, endM] = item.endTime.split(':').map(Number);
-
-            const startTotal = startH * 60 + startM;
-            const endTotal = endH * 60 + endM;
+            const startTotal = parseTimeToMinutes(item.startTime);
+            const endTotal = parseTimeToMinutes(item.endTime);
 
             if (currentMins >= startTotal && currentMins < endTotal) {
               return {
@@ -1790,7 +1809,7 @@
         }
       });
 
-      // Real-time Listener for settings/labConfig with Dynamic Fallback (09:00 - 21:00)
+      // Real-time Listener for settings/labConfig
       function listenToLabConfig() {
         if (unsubscribeConfigListener) unsubscribeConfigListener();
 
@@ -1879,7 +1898,7 @@
           shouldAutoCheckout = true;
           checkoutReason = "Previous Day Session Expiry";
         } 
-        // Condition 2: Lab is currently closed according to schedule
+        // Condition 2: Lab is currently closed according to dynamic schedule
         else if (!isLabOpen()) {
           shouldAutoCheckout = true;
           checkoutReason = "Laboratory Closing Time";
@@ -2392,7 +2411,7 @@
         const daysMapChron = { "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4, "friday": 5, "saturday": 6, "sunday": 7 };
         
         const now = new Date();
-        const currentMins = now.getHours() * 60 + now.getMinutes();
+        const currentMins = (now.getHours() * 60) + now.getMinutes();
         const todayName = DAYS_MAP[now.getDay()];
 
         const sortedSchedules = [...filteredSchedules].sort((a, b) => {
@@ -2400,9 +2419,9 @@
           const dayB = daysMapChron[(b.day || "").toLowerCase()] || 0;
           if (dayA !== dayB) return dayA - dayB;
 
-          const timeA = a.startTime || '00:00';
-          const timeB = b.startTime || '00:00';
-          return timeA.localeCompare(timeB);
+          const timeA = parseTimeToMinutes(a.startTime || '00:00');
+          const timeB = parseTimeToMinutes(b.startTime || '00:00');
+          return timeA - timeB;
         });
 
         sortedSchedules.forEach(item => {
@@ -2413,10 +2432,8 @@
           
           let isOngoing = false;
           if (item.day && item.day.toLowerCase() === todayName.toLowerCase()) {
-            const [startH, startM] = (item.startTime || "00:00").split(':').map(Number);
-            const [endH, endM] = (item.endTime || "00:00").split(':').map(Number);
-            const startTotal = startH * 60 + startM;
-            const endTotal = endH * 60 + endM;
+            const startTotal = parseTimeToMinutes(item.startTime || "00:00");
+            const endTotal = parseTimeToMinutes(item.endTime || "00:00");
             
             if (currentMins >= startTotal && currentMins < endTotal) {
               isOngoing = true;

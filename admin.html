@@ -33,6 +33,44 @@
       --text-muted: #94a3b8;
 
       --brand-purple: #6366f1;
+      The following is the fully updated code for `admin.html`, derived from your base file Logbook Admin_3.txt[cite: 1]. It includes a new `to24HourFormat` converter so the HTML `<input type="time">` boxes properly render saved 12-hour AM/PM times from Firestore[cite: 1], and updates the save functions for both Operating Hours and Schedules to push clean standard strings (e.g., "11:12 PM") back to the database to ensure perfect sync with `index.html`.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FUSEE Admin Portal | Digital Logbook</title>
+  
+  <!-- Google Font: Plus Jakarta Sans -->
+  <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
+  <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
+  <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap)" rel="stylesheet">
+
+  <!-- Mobile Settings -->
+  <meta name="theme-color" content="#ffffff">
+
+  <!-- Firebase Web SDKs (Compat version) -->
+  <script src="[https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js)"></script>
+  <script src="[https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js)"></script>
+  <script src="[https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js)"></script>
+  
+  <!-- ExcelJS Library for XLSX Export -->
+  <script src="[https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js](https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js)"></script>
+
+  <!-- Admin Theme Styling -->
+  <style>
+    :root {
+      --bg-main: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: rgba(99, 102, 241, 0.15);
+      
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+
+      --brand-purple: #6366f1;
       --brand-purple-dark: #4f46e5;
       --brand-pink: #ec4899;
       --brand-amber: #f59e0b;
@@ -945,6 +983,7 @@
       return null;
     }
 
+    // Convert any format to 12-hour Standard String for Firestore Database
     function formatTimeHHMM(timeStr) {
       if (!timeStr) return '';
       const mins = parseToMinutes(timeStr);
@@ -954,6 +993,16 @@
       const ampm = hours >= 12 ? 'PM' : 'AM';
       hours = hours % 12 || 12;
       return `${hours.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${ampm}`;
+    }
+
+    // Convert any format to 24-hour String to set values in HTML <input type="time">
+    function to24HourFormat(timeStr) {
+      if (!timeStr) return '';
+      const mins = parseToMinutes(timeStr);
+      if (mins === null) return timeStr;
+      const h = Math.floor(mins / 60).toString().padStart(2, '0');
+      const m = (mins % 60).toString().padStart(2, '0');
+      return `${h}:${m}`;
     }
 
     // Custom Modal System Implementation
@@ -1176,13 +1225,14 @@
             toggleLockBtn.textContent = isLocked ? '🔓 Unlock Check-Ins' : '🔒 Lock Check-Ins';
             globalSchedules = data.schedules || [];
             
+            // Format incoming strings to 24-hour so HTML input components accept them
             if (data.openTime) {
                 labOpenTime = data.openTime;
-                document.getElementById('config-open-time').value = data.openTime;
+                document.getElementById('config-open-time').value = to24HourFormat(data.openTime);
             }
             if (data.closeTime) {
                 labCloseTime = data.closeTime;
-                document.getElementById('config-close-time').value = data.closeTime;
+                document.getElementById('config-close-time').value = to24HourFormat(data.closeTime);
             }
           } else {
             globalSchedules = [];
@@ -1212,11 +1262,17 @@
       });
 
       btnSaveHours.addEventListener('click', async () => {
-        const oTime = document.getElementById('config-open-time').value;
-        const cTime = document.getElementById('config-close-time').value;
-        if (!oTime || !cTime) return showModal({ type: 'alert', title: 'Error', message: 'Please set both opening and closing times.' });
+        const oTimeRaw = document.getElementById('config-open-time').value;
+        const cTimeRaw = document.getElementById('config-close-time').value;
+        
+        if (!oTimeRaw || !cTimeRaw) return showModal({ type: 'alert', title: 'Error', message: 'Please set both opening and closing times.' });
+        
+        // Convert input 24-hour box values back to clean standard strings before saving
+        const oTimeStandard = formatTimeHHMM(oTimeRaw);
+        const cTimeStandard = formatTimeHHMM(cTimeRaw);
+
         try {
-          await db.collection('settings').doc('labConfig').set({ openTime: oTime, closeTime: cTime }, { merge: true });
+          await db.collection('settings').doc('labConfig').set({ openTime: oTimeStandard, closeTime: cTimeStandard }, { merge: true });
           await showModal({ type: 'alert', title: 'Success', icon: '✅', message: 'Lab operating hours updated.' });
         } catch (err) {
           await showModal({ type: 'alert', title: 'Error', message: err.message });
@@ -1665,8 +1721,11 @@
         document.getElementById('schedule-id').value = sched.id;
         document.getElementById('schedule-course').value = sched.courseName || '';
         document.getElementById('schedule-day').value = sched.day || 'Monday';
-        document.getElementById('schedule-start').value = sched.startTime || '';
-        document.getElementById('schedule-end').value = sched.endTime || '';
+        
+        // Convert to 24-hour format so HTML time input components accept the values
+        document.getElementById('schedule-start').value = to24HourFormat(sched.startTime) || '';
+        document.getElementById('schedule-end').value = to24HourFormat(sched.endTime) || '';
+        
         document.getElementById('schedule-modal-root').classList.add('active');
       };
 
@@ -1679,21 +1738,25 @@
         const id = document.getElementById('schedule-id').value;
         const courseName = document.getElementById('schedule-course').value.trim();
         const day = document.getElementById('schedule-day').value;
-        const startTime = document.getElementById('schedule-start').value;
-        const endTime = document.getElementById('schedule-end').value;
+        const startTimeRaw = document.getElementById('schedule-start').value;
+        const endTimeRaw = document.getElementById('schedule-end').value;
 
-        const startM = parseToMinutes(startTime);
-        const endM = parseToMinutes(endTime);
+        const startM = parseToMinutes(startTimeRaw);
+        const endM = parseToMinutes(endTimeRaw);
         if(startM >= endM) {
           return showModal({ type: 'alert', title: 'Invalid Time', message: 'Start time must be before end time.' });
         }
+
+        // Convert back to standard 12-hour strings before writing to Firestore
+        const startTimeStr = formatTimeHHMM(startTimeRaw);
+        const endTimeStr = formatTimeHHMM(endTimeRaw);
 
         const newSched = {
           id: id || 'sched_' + Date.now().toString() + '_' + Math.floor(Math.random()*1000),
           courseName,
           day,
-          startTime,
-          endTime
+          startTime: startTimeStr,
+          endTime: endTimeStr
         };
 
         let updatedSchedules = [...globalSchedules];
