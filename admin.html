@@ -185,6 +185,7 @@
       margin-bottom: 20px;
       border-bottom: 2px solid rgba(148, 163, 184, 0.2);
       padding-bottom: 2px;
+      flex-wrap: wrap;
     }
 
     .nav-tab-btn {
@@ -700,6 +701,7 @@
       <button id="tab-btn-logs" class="nav-tab-btn active">📋 Attendance Logs</button>
       <button id="tab-btn-students" class="nav-tab-btn">🎓 Registered Students Directory</button>
       <button id="tab-btn-schedule" class="nav-tab-btn">📅 Schedule Manager</button>
+      <button id="tab-btn-whitelist" class="nav-tab-btn">🛡️ EE Whitelist</button>
     </nav>
 
     <!-- TAB 1: ATTENDANCE LOGS VIEW -->
@@ -822,6 +824,36 @@
       </section>
     </div>
 
+    <!-- TAB 4: EE WHITELIST VIEW -->
+    <div id="tab-whitelist-view" style="display: none;">
+      <section class="filter-bar" style="justify-content: space-between;">
+        <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-secondary);">Whitelist AdDU emails authorized to use the logbook.</div>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="whitelist-email-input" class="search-input" placeholder="username@addu.edu.ph" style="min-width: 280px;">
+          <button id="btn-add-whitelist" class="btn btn-export">➕ Add Email</button>
+        </div>
+      </section>
+
+      <section class="table-card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Allowed Email</th>
+                <th>Date Added</th>
+                <th style="text-align: right; padding-right: 28px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="whitelist-table-body">
+              <tr>
+                <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading whitelist...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
   </div>
 
   <script>
@@ -927,9 +959,12 @@
       const tabBtnLogs = document.getElementById('tab-btn-logs');
       const tabBtnStudents = document.getElementById('tab-btn-students');
       const tabBtnSchedule = document.getElementById('tab-btn-schedule');
+      const tabBtnWhitelist = document.getElementById('tab-btn-whitelist');
+      
       const tabLogsView = document.getElementById('tab-logs-view');
       const tabStudentsView = document.getElementById('tab-students-view');
       const tabScheduleView = document.getElementById('tab-schedule-view');
+      const tabWhitelistView = document.getElementById('tab-whitelist-view');
       let currentTab = 'logs';
 
       // Log Filters
@@ -942,6 +977,11 @@
       // Directory Filters
       const filterStudentSearch = document.getElementById('filter-student-search');
       const filterStudentYear = document.getElementById('filter-student-year');
+
+      // Whitelist Elements
+      const whitelistEmailInput = document.getElementById('whitelist-email-input');
+      const btnAddWhitelist = document.getElementById('btn-add-whitelist');
+      const whitelistTableBody = document.getElementById('whitelist-table-body');
 
       const exportExcelBtn = document.getElementById('export-excel-btn');
       const logsTableBody = document.getElementById('logs-table-body');
@@ -959,11 +999,13 @@
 
       let rawLogs = [];
       let rawUsers = [];
+      let rawWhitelist = [];
       let globalSchedules = [];
       let usersMap = {}; 
       let unsubscribeLogs = null;
       let unsubscribeUsers = null;
       let unsubscribeConfig = null;
+      let unsubscribeWhitelist = null;
 
       // Handle Tab Switch Actions
       function switchTab(tab) {
@@ -971,9 +1013,12 @@
         tabBtnLogs.classList.remove('active');
         tabBtnStudents.classList.remove('active');
         tabBtnSchedule.classList.remove('active');
+        tabBtnWhitelist.classList.remove('active');
+        
         tabLogsView.style.display = 'none';
         tabStudentsView.style.display = 'none';
         tabScheduleView.style.display = 'none';
+        tabWhitelistView.style.display = 'none';
 
         if (tab === 'logs') {
           tabBtnLogs.classList.add('active');
@@ -984,12 +1029,16 @@
         } else if (tab === 'schedule') {
           tabBtnSchedule.classList.add('active');
           tabScheduleView.style.display = 'block';
+        } else if (tab === 'whitelist') {
+          tabBtnWhitelist.classList.add('active');
+          tabWhitelistView.style.display = 'block';
         }
       }
 
       tabBtnLogs.addEventListener('click', () => switchTab('logs'));
       tabBtnStudents.addEventListener('click', () => switchTab('students'));
       tabBtnSchedule.addEventListener('click', () => switchTab('schedule'));
+      tabBtnWhitelist.addEventListener('click', () => switchTab('whitelist'));
 
       // Handle Authentication Observer
       auth.onAuthStateChanged((user) => {
@@ -1003,6 +1052,7 @@
           if (unsubscribeLogs) unsubscribeLogs();
           if (unsubscribeUsers) unsubscribeUsers();
           if (unsubscribeConfig) unsubscribeConfig();
+          if (unsubscribeWhitelist) unsubscribeWhitelist();
         }
       });
 
@@ -1025,6 +1075,7 @@
         listenToConfig();
         listenToUsers(); 
         listenToLogs();
+        listenToWhitelist();
         
         // Execute background sweep evaluation every 60 seconds to catch precise class start times
         setInterval(() => {
@@ -1095,6 +1146,14 @@
             updateMetrics(rawLogs);
             renderLogsTable();
           });
+      }
+
+      function listenToWhitelist() {
+        if (unsubscribeWhitelist) unsubscribeWhitelist();
+        unsubscribeWhitelist = db.collection('allowed_students').orderBy('addedAt', 'desc').onSnapshot(snapshot => {
+          rawWhitelist = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          renderWhitelistTable();
+        });
       }
 
       // Automated Log Sweep Routine based on new criteria
@@ -1305,6 +1364,31 @@
         }).join('');
       }
 
+      function renderWhitelistTable() {
+        if (!rawWhitelist || rawWhitelist.length === 0) {
+          whitelistTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 30px;">No emails in whitelist.</td></tr>`;
+          return;
+        }
+
+        whitelistTableBody.innerHTML = rawWhitelist.map(item => {
+          const dateStr = item.addedAt 
+            ? (item.addedAt.toDate ? item.addedAt.toDate().toLocaleString() : new Date(item.addedAt).toLocaleString()) 
+            : 'Just now';
+            
+          return `
+            <tr>
+              <td><strong>${item.email}</strong></td>
+              <td>${dateStr}</td>
+              <td style="text-align: right;">
+                <div class="action-btn-group" style="justify-content: flex-end;">
+                  <button class="btn-action-danger" onclick="removeWhitelistEmail('${item.id}')">🗑️ Remove</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
       function formatTimeHHMM(timeStr) {
         if (!timeStr) return '';
         const [h, m] = timeStr.split(':');
@@ -1436,6 +1520,47 @@
           await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to update student profile: ' + err.message });
         }
       });
+
+      // Whitelist Logic
+      btnAddWhitelist.addEventListener('click', async () => {
+        const emailRaw = whitelistEmailInput.value.trim();
+        const cleanEmail = emailRaw.toLowerCase();
+        
+        if (!cleanEmail.endsWith('@addu.edu.ph')) {
+          await showModal({ type: 'alert', title: 'Invalid Email', icon: '❌', message: 'Email must end with @addu.edu.ph' });
+          return;
+        }
+
+        try {
+          await db.collection('allowed_students').doc(cleanEmail).set({
+            email: cleanEmail,
+            addedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          whitelistEmailInput.value = '';
+          await showModal({ type: 'alert', title: 'Success', icon: '✅', message: 'Email successfully added to whitelist.' });
+        } catch (error) {
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to add email: ' + error.message });
+        }
+      });
+
+      window.removeWhitelistEmail = async function(emailId) {
+        const confirmDel = await showModal({
+          type: 'confirm',
+          title: 'Remove Whitelist Access',
+          icon: '⚠️',
+          message: `Are you sure you want to remove ${emailId} from the whitelist? This immediately revokes their logbook portal access.`,
+          confirmText: 'Remove',
+          isDanger: true
+        });
+
+        if (!confirmDel) return;
+
+        try {
+          await db.collection('allowed_students').doc(emailId).delete();
+        } catch (err) {
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to remove email: ' + err.message });
+        }
+      };
 
       // Filter Listeners
       [filterSearch, filterYear, filterStatus, filterPurpose, filterDate].forEach(el => {

@@ -1659,6 +1659,15 @@
       auth.onAuthStateChanged(async (user) => {
         if (user) {
           try {
+            const email = user.email.toLowerCase();
+            const allowedDoc = await db.collection('allowed_students').doc(email).get();
+            
+            if (!allowedDoc.exists) {
+              showAlert("Access Denied", "Access Denied: Your email is not listed in the official EE Enrolled Directory. Please contact the EE lab administrator.");
+              await auth.signOut();
+              return;
+            }
+
             const userRef = db.collection('users').doc(user.uid);
             const userDoc = await userRef.get();
 
@@ -1854,6 +1863,13 @@
         submitBtn.textContent = 'Creating Account...';
 
         try {
+          const allowedDoc = await db.collection('allowed_students').doc(email).get();
+          if (!allowedDoc.exists) {
+            showAlert("Access Denied", "Access Denied: Your email is not listed in the official EE Enrolled Directory. Please contact the EE lab administrator.");
+            if (auth.currentUser) await auth.signOut();
+            return;
+          }
+
           const userCredential = await auth.createUserWithEmailAndPassword(email, password);
           await userCredential.user.updateProfile({ displayName: name });
 
@@ -1905,6 +1921,13 @@
         submitBtn.textContent = 'Logging In...';
 
         try {
+          const allowedDoc = await db.collection('allowed_students').doc(email).get();
+          if (!allowedDoc.exists) {
+            showAlert("Access Denied", "Access Denied: Your email is not listed in the official EE Enrolled Directory. Please contact the EE lab administrator.");
+            if (auth.currentUser) await auth.signOut();
+            return;
+          }
+
           await auth.signInWithEmailAndPassword(email, password);
           loginForm.reset();
         } catch (error) {
