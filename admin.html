@@ -561,6 +561,572 @@
     </div>
   </div>
 
+  <!-- Dedicated Modal for EditingHere is the completely updated HTML code based on Logbook Admin_2.txt[cite: 1]. The `setInterval` dependency has been removed, and `listenToLogs` now uses `async/await` to ensure `runAutoCheckoutSweep` mutates the local logs and pushes to Firestore *before* `updateMetrics` calculates the dashboard stats, guaranteeing absolute accuracy on page load and incoming snapshots[cite: 1].
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FUSEE Admin Portal | Digital Logbook</title>
+  
+  <!-- Google Font: Plus Jakarta Sans -->
+  <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
+  <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
+  <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap)" rel="stylesheet">
+
+  <!-- Mobile Settings -->
+  <meta name="theme-color" content="#ffffff">
+
+  <!-- Firebase Web SDKs (Compat version) -->
+  <script src="[https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js)"></script>
+  <script src="[https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js)"></script>
+  <script src="[https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js)"></script>
+  
+  <!-- ExcelJS Library for XLSX Export -->
+  <script src="[https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js](https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js)"></script>
+
+  <!-- Admin Theme Styling -->
+  <style>
+    :root {
+      --bg-main: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: rgba(99, 102, 241, 0.15);
+      
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+
+      --brand-purple: #6366f1;
+      --brand-purple-dark: #4f46e5;
+      --brand-pink: #ec4899;
+      --brand-amber: #f59e0b;
+      
+      --status-in: #10b981;
+      --status-out: #ef4444;
+
+      --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --radius-lg: 20px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    .admin-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Top Navigation Bar */
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 20px 28px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--card-border);
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .admin-logo {
+      height: 54px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .brand-titles h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .brand-titles p {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .admin-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-export {
+      background: linear-gradient(135deg, var(--brand-purple), var(--brand-purple-dark));
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+    }
+
+    .btn-export:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+
+    .btn-logout {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-logout:hover {
+      background: rgba(239, 68, 68, 0.18);
+    }
+
+    /* Metric Cards Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    /* Navigation Tabs */
+    .tabs-container {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid rgba(148, 163, 184, 0.2);
+      padding-bottom: 2px;
+      flex-wrap: wrap;
+    }
+
+    .nav-tab-btn {
+      padding: 10px 22px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-tab-btn:hover {
+      color: var(--brand-purple);
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .nav-tab-btn.active {
+      color: var(--brand-purple);
+      border-bottom-color: var(--brand-purple);
+      background: rgba(99, 102, 241, 0.08);
+    }
+
+    /* Filters Section */
+    .filter-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .search-input, .select-filter, .date-filter, .time-filter {
+      padding: 10px 14px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 0.88rem;
+      outline: none;
+      color: var(--text-primary);
+      background: #ffffff;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .search-input:focus, .select-filter:focus, .date-filter:focus, .time-filter:focus {
+      border-color: var(--brand-purple);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    /* Logs Data Table */
+    .table-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+      overflow: hidden;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: #f1f5f9;
+      padding: 14px 18px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: rgba(235, 243, 254, 0.4);
+    }
+
+    /* Action Buttons */
+    .action-btn-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-action-edit {
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--brand-purple-dark);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+    .btn-action-edit:hover {
+      background: var(--brand-purple);
+      color: #ffffff;
+    }
+
+    .btn-action-danger {
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+    .btn-action-danger:hover {
+      background: #ef4444;
+      color: #ffffff;
+    }
+
+    /* Status Badges */
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+    }
+
+    .badge-in {
+      background: rgba(16, 185, 129, 0.12);
+      color: #047857;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .badge-out {
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--text-secondary);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    .badge-pc {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--brand-purple-dark);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .badge-table {
+      background: rgba(245, 158, 11, 0.1);
+      color: #d97706;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .status-dot-sm {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .badge-in .status-dot-sm {
+      background-color: var(--status-in);
+    }
+
+    .badge-out .status-dot-sm {
+      background-color: var(--text-muted);
+    }
+
+    /* Auth Gate Screen */
+    .auth-gate {
+      max-width: 400px;
+      margin: 80px auto;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 32px 24px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+      text-align: center;
+    }
+
+    .auth-gate h2 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .auth-gate p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    .auth-gate input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 0.9rem;
+      margin-bottom: 14px;
+      outline: none;
+    }
+
+    .auth-gate input:focus {
+      border-color: var(--brand-purple);
+    }
+
+    .auth-gate .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--brand-purple), var(--brand-purple-dark));
+      color: #fff;
+    }
+
+    .error-text {
+      color: #ef4444;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-top: 8px;
+      display: none;
+    }
+
+    /* Custom Modal Overrides for Visuals */
+    .custom-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .custom-modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .custom-modal {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 420px;
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      transform: scale(0.95);
+      transition: transform 0.2s ease-in-out;
+      text-align: center;
+    }
+
+    .custom-modal-overlay.active .custom-modal {
+      transform: scale(1);
+    }
+
+    .custom-modal-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+      line-height: 1;
+    }
+
+    .custom-modal-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .custom-modal-message {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .custom-modal-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+      outline: none;
+      display: none;
+    }
+
+    .custom-modal-input:focus {
+      border-color: var(--brand-purple);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .custom-modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .btn-modal-cancel {
+      background: #ffffff;
+      color: var(--text-secondary);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    .btn-modal-cancel:hover {
+      background: #f1f5f9;
+    }
+
+    .btn-modal-confirm {
+      background: var(--brand-purple);
+      color: white;
+    }
+    .btn-modal-confirm:hover {
+      background: var(--brand-purple-dark);
+    }
+    
+    .btn-modal-danger {
+      background: var(--status-out);
+      color: white;
+    }
+    .btn-modal-danger:hover {
+      background: #dc2626;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Custom Notification Modal -->
+  <div id="custom-modal-root" class="custom-modal-overlay">
+    <div class="custom-modal">
+      <div id="custom-modal-icon" class="custom-modal-icon">ℹ️</div>
+      <div id="custom-modal-title" class="custom-modal-title">Notification</div>
+      <div id="custom-modal-message" class="custom-modal-message"></div>
+      <input type="password" id="custom-modal-input" class="custom-modal-input" />
+      <div class="custom-modal-actions">
+        <button id="custom-modal-btn-cancel" class="btn btn-modal-cancel">Cancel</button>
+        <button id="custom-modal-btn-confirm" class="btn btn-modal-confirm">OK</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Dedicated Modal for Editing Student Profiles -->
   <div id="edit-student-modal-root" class="custom-modal-overlay">
     <div class="custom-modal" style="max-width: 460px; text-align: left;">
@@ -1076,13 +1642,6 @@
         listenToUsers(); 
         listenToLogs();
         listenToWhitelist();
-        
-        // Execute background sweep evaluation every 60 seconds to catch precise class start times
-        setInterval(() => {
-          if (rawLogs && rawLogs.length > 0) {
-            runAutoCheckoutSweep(rawLogs);
-          }
-        }, 60000); 
       }
 
       // Initialize Settings, Locks & Schedules
@@ -1140,10 +1699,10 @@
         unsubscribeLogs = db.collection('attendance_logs')
           .orderBy('createdAt', 'desc')
           .limit(500)
-          .onSnapshot((snapshot) => {
+          .onSnapshot(async (snapshot) => {
             rawLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            runAutoCheckoutSweep(rawLogs);
-            updateMetrics(rawLogs);
+            await runAutoCheckoutSweep(rawLogs); // Mutates and ensures database syncing is triggered properly
+            updateMetrics(rawLogs); // Calculates from locally updated states instantly
             renderLogsTable();
           });
       }
@@ -1201,14 +1760,22 @@
 
         const batch = db.batch();
         pendingSweepLogs.forEach(log => {
+          const outTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
           const docRef = db.collection('attendance_logs').doc(log.id);
+          
           batch.update(docRef, {
             status: 'OUT',
-            checkOutTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            checkOutTime: outTime,
             checkedOutBy: 'auto_sweep',
             checkoutReason: 'Scheduled Sweep',
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
+
+          // Modify log locally for immediate display accuracy before the next snapshot is received
+          log.status = 'OUT';
+          log.checkOutTime = outTime;
+          log.checkedOutBy = 'auto_sweep';
+          log.checkoutReason = 'Scheduled Sweep';
         });
 
         try {
@@ -1346,17 +1913,17 @@
           return a.startTime.localeCompare(b.startTime);
         });
 
-        schedulesTableBody.innerHTML = sorted.map(sched => {
+        schedulesTableBody.innerHTML = sorted.map((sch, index) => {
           return `
             <tr>
-              <td><strong>${sched.day}</strong></td>
-              <td>${sched.courseName}</td>
-              <td>${formatTimeHHMM(sched.startTime)}</td>
-              <td>${formatTimeHHMM(sched.endTime)}</td>
+              <td><strong>${sch.day}</strong></td>
+              <td>${sch.courseName}</td>
+              <td>${formatTimeToAMPM(sch.startTime)}</td>
+              <td>${formatTimeToAMPM(sch.endTime)}</td>
               <td style="text-align: right;">
                 <div class="action-btn-group" style="justify-content: flex-end;">
-                  <button class="btn-action-edit" onclick="openScheduleModal('${sched.id}')">✏️ Edit</button>
-                  <button class="btn-action-danger" onclick="deleteSchedule('${sched.id}')">🗑️ Delete</button>
+                  <button class="btn-action-edit" onclick="editSchedule(${index})">✏️ Edit</button>
+                  <button class="btn-action-danger" onclick="deleteSchedule(${index})">🗑️ Delete</button>
                 </div>
               </td>
             </tr>
@@ -1364,371 +1931,296 @@
         }).join('');
       }
 
+      function formatTimeToAMPM(time24) {
+        if (!time24) return '';
+        const [hours, minutes] = time24.split(':');
+        let h = parseInt(hours, 10);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return `${h}:${minutes} ${ampm}`;
+      }
+
       function renderWhitelistTable() {
-        if (!rawWhitelist || rawWhitelist.length === 0) {
-          whitelistTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 30px;">No emails in whitelist.</td></tr>`;
+        if (rawWhitelist.length === 0) {
+          whitelistTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 30px;">No whitelisted emails.</td></tr>`;
           return;
         }
 
         whitelistTableBody.innerHTML = rawWhitelist.map(item => {
-          const dateStr = item.addedAt 
-            ? (item.addedAt.toDate ? item.addedAt.toDate().toLocaleString() : new Date(item.addedAt).toLocaleString()) 
-            : 'Just now';
-            
+          const dateAdded = item.addedAt ? item.addedAt.toDate().toLocaleDateString() : '—';
           return `
             <tr>
               <td><strong>${item.email}</strong></td>
-              <td>${dateStr}</td>
+              <td>${dateAdded}</td>
               <td style="text-align: right;">
-                <div class="action-btn-group" style="justify-content: flex-end;">
-                  <button class="btn-action-danger" onclick="removeWhitelistEmail('${item.id}')">🗑️ Remove</button>
-                </div>
+                <button class="btn-action-danger" onclick="removeWhitelist('${item.id}', '${item.email}')">🗑️ Remove</button>
               </td>
             </tr>
           `;
         }).join('');
       }
 
-      function formatTimeHHMM(timeStr) {
-        if (!timeStr) return '';
-        const [h, m] = timeStr.split(':');
-        let hours = parseInt(h);
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12 || 12;
-        return `${hours.toString().padStart(2, '0')}:${m} ${ampm}`;
-      }
-
       function escapeQuotes(str) {
-        return (str || '').replace(/'/g, "\\'");
+        return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
       }
 
-      // Schedule Manager Helpers
-      window.openScheduleModal = function(id = null) {
-        const modal = document.getElementById('schedule-modal-root');
-        if (id) {
-          const sched = globalSchedules.find(s => s.id === id);
-          if (sched) {
-            document.getElementById('schedule-id').value = sched.id;
-            document.getElementById('schedule-course').value = sched.courseName;
-            document.getElementById('schedule-day').value = sched.day;
-            document.getElementById('schedule-start').value = sched.startTime;
-            document.getElementById('schedule-end').value = sched.endTime;
-          }
-        } else {
-          document.getElementById('schedule-id').value = '';
-          document.getElementById('schedule-form').reset();
-        }
-        modal.classList.add('active');
+      // ----------------------------------------------------
+      // STUDENT MANAGEMENT FUNCTIONS
+      // ----------------------------------------------------
+      const editStudentRoot = document.getElementById('edit-student-modal-root');
+      const editStudentForm = document.getElementById('edit-student-form');
+      const editStudentCancel = document.getElementById('edit-student-cancel');
+      let currentEditingStudentId = null;
+
+      window.openEditStudentModal = function(studentId) {
+        const user = rawUsers.find(u => u.id === studentId);
+        if (!user) return;
+        currentEditingStudentId = studentId;
+        document.getElementById('edit-student-name').value = user.fullName || '';
+        document.getElementById('edit-student-email').value = user.email || '';
+        document.getElementById('edit-student-year').value = user.yearLevel || '1st Year';
+        editStudentRoot.classList.add('active');
       };
 
-      document.getElementById('btn-add-schedule').addEventListener('click', () => {
-        openScheduleModal();
+      editStudentCancel.addEventListener('click', () => {
+        editStudentRoot.classList.remove('active');
+        currentEditingStudentId = null;
       });
 
-      document.getElementById('schedule-cancel').addEventListener('click', () => {
-        document.getElementById('schedule-modal-root').classList.remove('active');
-      });
-
-      document.getElementById('schedule-form').addEventListener('submit', async (e) => {
+      editStudentForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const id = document.getElementById('schedule-id').value || `sched_${Date.now()}`;
+        if (!currentEditingStudentId) return;
+
+        const newName = document.getElementById('edit-student-name').value.trim();
+        const newEmail = document.getElementById('edit-student-email').value.trim().toLowerCase();
+        const newYear = document.getElementById('edit-student-year').value;
+
+        try {
+          await db.collection('users').doc(currentEditingStudentId).update({
+            fullName: newName,
+            email: newEmail,
+            yearLevel: newYear
+          });
+          
+          await showModal({ type: 'alert', icon: '✅', title: 'Success', message: 'Student profile updated successfully.' });
+          editStudentRoot.classList.remove('active');
+        } catch (err) {
+          await showModal({ type: 'alert', icon: '❌', title: 'Error', message: 'Failed to update student profile: ' + err.message });
+        }
+      });
+
+      window.kickOutStudent = async function(studentId, fullName, email) {
+        const confirmKick = await showModal({
+          type: 'confirm',
+          title: 'Confirm Removal',
+          icon: '⚠️',
+          message: `Are you sure you want to permanently remove ${fullName} from the registered system? This action cannot be undone.`,
+          confirmText: 'Yes, Kick Out',
+          isDanger: true
+        });
+        if (!confirmKick) return;
+
+        try {
+          await db.collection('users').doc(studentId).delete();
+          await showModal({ type: 'alert', icon: '✅', title: 'Removed', message: `${fullName} has been removed from the registry.` });
+        } catch (err) {
+          await showModal({ type: 'alert', icon: '❌', title: 'Error', message: 'Failed to remove student: ' + err.message });
+        }
+      };
+
+      // ----------------------------------------------------
+      // SCHEDULE MANAGEMENT FUNCTIONS
+      // ----------------------------------------------------
+      const scheduleModalRoot = document.getElementById('schedule-modal-root');
+      const scheduleForm = document.getElementById('schedule-form');
+      const btnAddSchedule = document.getElementById('btn-add-schedule');
+      const scheduleCancelBtn = document.getElementById('schedule-cancel');
+      let editScheduleIndex = -1; // -1 means add new
+
+      btnAddSchedule.addEventListener('click', () => {
+        editScheduleIndex = -1;
+        scheduleForm.reset();
+        scheduleModalRoot.classList.add('active');
+      });
+
+      scheduleCancelBtn.addEventListener('click', () => {
+        scheduleModalRoot.classList.remove('active');
+      });
+
+      scheduleForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
         const courseName = document.getElementById('schedule-course').value.trim();
         const day = document.getElementById('schedule-day').value;
         const startTime = document.getElementById('schedule-start').value;
         const endTime = document.getElementById('schedule-end').value;
 
-        const newSchedule = { id, courseName, day, startTime, endTime };
-        const otherSchedules = globalSchedules.filter(s => s.id !== id);
-        const updatedSchedules = [...otherSchedules, newSchedule];
+        if (startTime >= endTime) {
+          await showModal({ type: 'alert', icon: '⚠️', title: 'Invalid Time', message: 'Start time must be before end time.' });
+          return;
+        }
+
+        const newSch = { courseName, day, startTime, endTime };
+        let updatedSchedules = [...globalSchedules];
+
+        if (editScheduleIndex > -1) {
+          updatedSchedules[editScheduleIndex] = newSch;
+        } else {
+          updatedSchedules.push(newSch);
+        }
 
         try {
           await db.collection('settings').doc('labConfig').set({ schedules: updatedSchedules }, { merge: true });
-          document.getElementById('schedule-modal-root').classList.remove('active');
-          await showModal({ type: 'alert', title: 'Schedule Saved', icon: '✅', message: `Class schedule for ${courseName} successfully saved.` });
+          scheduleModalRoot.classList.remove('active');
+          await showModal({ type: 'alert', icon: '✅', title: 'Success', message: 'Schedule saved successfully.' });
         } catch (err) {
-          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: "Failed to save schedule: " + err.message });
+          await showModal({ type: 'alert', icon: '❌', title: 'Error', message: 'Failed to save schedule.' });
         }
       });
 
-      window.deleteSchedule = async function(id) {
+      window.editSchedule = function(index) {
+        const sch = globalSchedules[index];
+        if (!sch) return;
+        editScheduleIndex = index;
+        document.getElementById('schedule-course').value = sch.courseName;
+        document.getElementById('schedule-day').value = sch.day;
+        document.getElementById('schedule-start').value = sch.startTime;
+        document.getElementById('schedule-end').value = sch.endTime;
+        scheduleModalRoot.classList.add('active');
+      };
+
+      window.deleteSchedule = async function(index) {
         const confirmDel = await showModal({
           type: 'confirm',
           title: 'Delete Schedule',
           icon: '⚠️',
-          message: `Are you sure you want to remove this recurring class?`,
+          message: 'Are you sure you want to remove this recurring class schedule?',
           confirmText: 'Delete',
           isDanger: true
         });
-
         if (!confirmDel) return;
 
-        const updatedSchedules = globalSchedules.filter(s => s.id !== id);
+        let updatedSchedules = [...globalSchedules];
+        updatedSchedules.splice(index, 1);
         try {
           await db.collection('settings').doc('labConfig').set({ schedules: updatedSchedules }, { merge: true });
         } catch (err) {
-          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to delete schedule: ' + err.message });
+          await showModal({ type: 'alert', icon: '❌', title: 'Error', message: 'Failed to delete schedule.' });
         }
       };
 
-      // Student Edit Functions
-      window.openEditStudentModal = function(userId) {
-        const user = rawUsers.find(u => u.id === userId);
-        if (!user) return;
-        document.getElementById('edit-student-id').value = user.id;
-        document.getElementById('edit-student-name').value = user.fullName || '';
-        document.getElementById('edit-student-email').value = user.email || '';
-        document.getElementById('edit-student-year').value = user.yearLevel || '1st Year';
-        document.getElementById('edit-student-modal-root').classList.add('active');
-      };
-
-      window.kickOutStudent = async function(userId, fullName, email) {
-        const confirmed = await showModal({
-          type: 'confirm',
-          title: 'Kick Out Student',
-          icon: '⚠️',
-          message: `Are you sure you want to kick out/remove ${fullName || email} from the registered database?`,
-          confirmText: 'Kick Out',
-          isDanger: true
-        });
-
-        if (!confirmed) return;
-
-        try {
-          await db.collection('users').doc(userId).delete();
-          await showModal({ type: 'alert', title: 'Student Removed', icon: '✅', message: `${fullName || email} removed.` });
-        } catch (err) {
-          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to delete student: ' + err.message });
-        }
-      };
-
-      document.getElementById('edit-student-cancel').addEventListener('click', () => {
-        document.getElementById('edit-student-modal-root').classList.remove('active');
-      });
-
-      document.getElementById('edit-student-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const userId = document.getElementById('edit-student-id').value;
-        const fullName = document.getElementById('edit-student-name').value.trim();
-        const email = document.getElementById('edit-student-email').value.trim();
-        const yearLevel = document.getElementById('edit-student-year').value;
-
-        try {
-          await db.collection('users').doc(userId).update({ fullName, email, yearLevel });
-          document.getElementById('edit-student-modal-root').classList.remove('active');
-          await showModal({ type: 'alert', title: 'Profile Updated', icon: '✅', message: `Student record successfully updated!` });
-        } catch (err) {
-          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to update student profile: ' + err.message });
-        }
-      });
-
-      // Whitelist Logic
+      // ----------------------------------------------------
+      // WHITELIST MANAGEMENT FUNCTIONS
+      // ----------------------------------------------------
       btnAddWhitelist.addEventListener('click', async () => {
-        const emailRaw = whitelistEmailInput.value.trim();
-        const cleanEmail = emailRaw.toLowerCase();
+        const email = whitelistEmailInput.value.trim().toLowerCase();
+        if (!email) return;
         
-        if (!cleanEmail.endsWith('@addu.edu.ph')) {
-          await showModal({ type: 'alert', title: 'Invalid Email', icon: '❌', message: 'Email must end with @addu.edu.ph' });
+        if (!email.endsWith('@addu.edu.ph')) {
+          await showModal({ type: 'alert', icon: '⚠️', title: 'Invalid Domain', message: 'Only @addu.edu.ph emails are allowed.' });
+          return;
+        }
+
+        // Check if already exists
+        const exists = rawWhitelist.some(w => w.email === email);
+        if (exists) {
+          await showModal({ type: 'alert', icon: 'ℹ️', title: 'Already Added', message: `${email} is already in the whitelist.` });
+          whitelistEmailInput.value = '';
           return;
         }
 
         try {
-          await db.collection('allowed_students').doc(cleanEmail).set({
-            email: cleanEmail,
+          await db.collection('allowed_students').add({
+            email: email,
             addedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
           whitelistEmailInput.value = '';
-          await showModal({ type: 'alert', title: 'Success', icon: '✅', message: 'Email successfully added to whitelist.' });
-        } catch (error) {
-          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to add email: ' + error.message });
+          await showModal({ type: 'alert', icon: '✅', title: 'Added', message: `${email} has been whitelisted.` });
+        } catch (err) {
+          await showModal({ type: 'alert', icon: '❌', title: 'Error', message: 'Failed to add to whitelist.' });
         }
       });
 
-      window.removeWhitelistEmail = async function(emailId) {
-        const confirmDel = await showModal({
+      window.removeWhitelist = async function(docId, email) {
+        const confirmRm = await showModal({
           type: 'confirm',
-          title: 'Remove Whitelist Access',
+          title: 'Remove Whitelist',
           icon: '⚠️',
-          message: `Are you sure you want to remove ${emailId} from the whitelist? This immediately revokes their logbook portal access.`,
+          message: `Revoke logbook access for ${email}?`,
           confirmText: 'Remove',
           isDanger: true
         });
-
-        if (!confirmDel) return;
+        if (!confirmRm) return;
 
         try {
-          await db.collection('allowed_students').doc(emailId).delete();
+          await db.collection('allowed_students').doc(docId).delete();
         } catch (err) {
-          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to remove email: ' + err.message });
+          await showModal({ type: 'alert', icon: '❌', title: 'Error', message: 'Failed to remove from whitelist.' });
         }
       };
 
-      // Filter Listeners
+      // ----------------------------------------------------
+      // EXPORT & EVENT LISTENERS
+      // ----------------------------------------------------
       [filterSearch, filterYear, filterStatus, filterPurpose, filterDate].forEach(el => {
-        el.addEventListener('input', renderLogsTable);
-        el.addEventListener('change', renderLogsTable);
+        if(el) el.addEventListener('input', renderLogsTable);
       });
-
       [filterStudentSearch, filterStudentYear].forEach(el => {
-        el.addEventListener('input', renderStudentsTable);
-        el.addEventListener('change', renderStudentsTable);
+        if(el) el.addEventListener('input', renderStudentsTable);
       });
 
-      // ExcelJS Export Logic
       exportExcelBtn.addEventListener('click', async () => {
-        if (typeof ExcelJS === 'undefined') {
-            await showModal({ type: 'alert', title: 'Export Error', icon: '❌', message: 'ExcelJS library failed to load.' });
-            return;
+        if (rawLogs.length === 0) {
+          await showModal({ type: 'alert', title: 'No Data', message: 'There is no data to export.' });
+          return;
         }
+        
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('Attendance Logs');
 
-        const workbook = new ExcelJS.Workbook();
+        ws.columns = [
+          { header: 'Date', key: 'date', width: 12 },
+          { header: 'Student Name', key: 'name', width: 25 },
+          { header: 'Email', key: 'email', width: 30 },
+          { header: 'Year Level', key: 'year', width: 15 },
+          { header: 'Purpose', key: 'purpose', width: 12 },
+          { header: 'Check In', key: 'checkIn', width: 12 },
+          { header: 'Check Out', key: 'checkOut', width: 12 },
+          { header: 'Status', key: 'status', width: 10 },
+          { header: 'Check Out Reason', key: 'reason', width: 20 }
+        ];
 
-        if (currentTab === 'logs') {
-          if (!rawLogs || rawLogs.length === 0) {
-            await showModal({ type: 'alert', title: 'Export Failed', icon: '📉', message: "No log data available to export." });
-            return;
-          }
+        rawLogs.forEach(log => {
+          const emailKey = log.email ? log.email.toLowerCase() : '';
+          const currentName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : log.fullName;
+          const currentYear = (usersMap[emailKey] && usersMap[emailKey].yearLevel) ? usersMap[emailKey].yearLevel : log.yearLevel;
 
-          const worksheet = workbook.addWorksheet('Attendance Logs');
-          worksheet.views = [{ state: 'frozen', xSplit: 0, ySplit: 1 }];
-
-          worksheet.columns = [
-            { header: 'Date', key: 'date', style: { alignment: { horizontal: 'center' } } },
-            { header: 'Student Name', key: 'name', style: { alignment: { horizontal: 'left' } } },
-            { header: 'AdDU Email', key: 'email', style: { alignment: { horizontal: 'left' } } },
-            { header: 'Year Level', key: 'year', style: { alignment: { horizontal: 'center' } } },
-            { header: 'Purpose', key: 'purpose', style: { alignment: { horizontal: 'left' } } },
-            { header: 'Check In', key: 'checkIn', style: { alignment: { horizontal: 'center' } } },
-            { header: 'Check Out', key: 'checkOut', style: { alignment: { horizontal: 'center' } } },
-            { header: 'Status', key: 'status', style: { alignment: { horizontal: 'center' } } },
-            { header: 'Action By', key: 'actionBy', style: { alignment: { horizontal: 'center' } } },
-            { header: 'Reason', key: 'reason', style: { alignment: { horizontal: 'left' } } }
-          ];
-
-          // Format Header Row
-          const headerRow = worksheet.getRow(1);
-          headerRow.eachCell((cell) => {
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
-            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          ws.addRow({
+            date: log.date || '',
+            name: currentName || '',
+            email: log.email || '',
+            year: currentYear || '',
+            purpose: log.purpose || '',
+            checkIn: log.checkInTime || '',
+            checkOut: log.checkOutTime || '',
+            status: log.status || '',
+            reason: log.checkoutReason || ''
           });
-
-          rawLogs.forEach((log, index) => {
-            const emailKey = log.email ? log.email.toLowerCase() : '';
-            const currentName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : (log.fullName || '');
-            const currentYear = (usersMap[emailKey] && usersMap[emailKey].yearLevel) ? usersMap[emailKey].yearLevel : (log.yearLevel || '');
-
-            const row = worksheet.addRow({
-              date: log.date || '',
-              name: currentName,
-              email: log.email || '',
-              year: currentYear,
-              purpose: log.purpose || '',
-              checkIn: log.checkInTime || '',
-              checkOut: log.checkOutTime || '',
-              status: log.status || '',
-              actionBy: log.checkedOutBy || 'student',
-              reason: log.checkoutReason || ''
-            });
-
-            // Alternate Row Colors (Very light gray vs white)
-            const bgColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF3F4F6'; 
-            row.eachCell({ includeEmpty: true }, (cell) => {
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
-            });
-
-            // Status Badge Formatting
-            const statusCell = row.getCell('status');
-            if (log.status === 'IN') {
-              statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
-              statusCell.font = { color: { argb: 'FF065F46' }, bold: true };
-            } else if (log.status === 'OUT') {
-              statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } };
-              statusCell.font = { color: { argb: 'FF991B1B' }, bold: true };
-            }
-          });
-
-          autoFitColumns(worksheet);
-          triggerDownload(workbook, `FUSEE_Lab_Logs_${new Date().toISOString().slice(0, 10)}.xlsx`);
-
-        } else if (currentTab === 'students') {
-          if (!rawUsers || rawUsers.length === 0) {
-            await showModal({ type: 'alert', title: 'Export Failed', icon: '📉', message: "No registered students data to export." });
-            return;
-          }
-
-          const sortedUsers = [...rawUsers].sort((a, b) => {
-            const rankA = getYearRank(a.yearLevel);
-            const rankB = getYearRank(b.yearLevel);
-            if (rankA !== rankB) return rankA - rankB;
-            const lastNameA = getLastName(a.fullName);
-            const lastNameB = getLastName(b.fullName);
-            if (lastNameA !== lastNameB) return lastNameA.localeCompare(lastNameB);
-            return (a.fullName || '').localeCompare(b.fullName || '');
-          });
-
-          const worksheet = workbook.addWorksheet('Registered Students');
-          worksheet.views = [{ state: 'frozen', xSplit: 0, ySplit: 1 }];
-
-          worksheet.columns = [
-            { header: 'Student Name', key: 'name', style: { alignment: { horizontal: 'left' } } },
-            { header: 'AdDU Email', key: 'email', style: { alignment: { horizontal: 'left' } } },
-            { header: 'Year Level', key: 'year', style: { alignment: { horizontal: 'center' } } }
-          ];
-
-          const headerRow = worksheet.getRow(1);
-          headerRow.eachCell((cell) => {
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
-            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-            cell.alignment = { vertical: 'middle', horizontal: 'center' };
-          });
-
-          sortedUsers.forEach((user, index) => {
-            const row = worksheet.addRow({
-              name: user.fullName || '',
-              email: user.email || '',
-              year: user.yearLevel || ''
-            });
-            const bgColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF3F4F6';
-            row.eachCell({ includeEmpty: true }, (cell) => {
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
-            });
-          });
-
-          autoFitColumns(worksheet);
-          triggerDownload(workbook, `FUSEE_Registered_Students_${new Date().toISOString().slice(0, 10)}.xlsx`);
-
-        } else {
-            await showModal({ type: 'alert', title: 'Notice', icon: 'ℹ️', message: "Export is only available for Logs and Student Directory." });
-        }
-      });
-
-      // Helper function to dynamically auto-fit columns
-      function autoFitColumns(worksheet) {
-        worksheet.columns.forEach(column => {
-          let maxLength = 0;
-          column.eachCell({ includeEmpty: true }, cell => {
-            const columnLength = cell.value ? cell.value.toString().length : 10;
-            if (columnLength > maxLength) {
-              maxLength = columnLength;
-            }
-          });
-          column.width = maxLength < 10 ? 10 : maxLength + 2;
         });
-      }
 
-      // Helper function to compile and download the buffer
-      async function triggerDownload(workbook, filename) {
-        const buffer = await workbook.xlsx.writeBuffer();
+        // Header Styling
+        ws.getRow(1).font = { bold: true };
+        ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
+        ws.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+
+        const buffer = await wb.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `EELab_Logs_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        anchor.click();
         window.URL.revokeObjectURL(url);
-      }
+      });
     });
   </script>
 </body>
