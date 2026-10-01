@@ -355,7 +355,7 @@
     /* Live Lab Occupancy Snapshot Cards */
     .occupancy-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
       margin-bottom: 16px;
     }
@@ -381,7 +381,7 @@
       color: var(--text-secondary);
       margin-bottom: 4px;
       display: block;
-      white-space: nowrap;
+      white-space: normal;
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -962,28 +962,16 @@
       color: var(--text-primary);
     }
 
-    .empty-schedule-state {
-      text-align: center;
-      padding: 30px 16px;
-      background: #f8fafc;
-      border: 1px dashed #cbd5e1;
-      border-radius: var(--radius-sm);
-    }
-
-    .empty-schedule-state .icon {
-      font-size: 2.5rem;
-      margin-bottom: 12px;
-      display: block;
-    }
-
-    .empty-schedule-state p {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      font-weight: 500;
-      line-height: 1.5;
-    }
-
     /* Small Mobile Screen Optimizations */
+    @media (max-width: 480px) {
+      .occupancy-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .occupancy-card:nth-child(3) {
+        grid-column: span 2;
+      }
+    }
+
     @media (max-width: 380px) {
       body {
         padding: 10px;
@@ -1077,12 +1065,6 @@
         <button class="tab-btn" data-day="Thursday">Thu</button>
         <button class="tab-btn" data-day="Friday">Fri</button>
         <button class="tab-btn" data-day="Saturday">Sat</button>
-      </div>
-
-      <!-- Empty State -->
-      <div id="empty-schedule-state" class="empty-schedule-state" style="display: none;">
-        <span class="icon">📅</span>
-        <p>No Classes Scheduled. The computer lab is free for walk-ins / open study.</p>
       </div>
 
       <!-- Table State -->
@@ -1399,7 +1381,6 @@
       
       // New Tab Logic UI Elements
       const scheduleTabs = document.querySelectorAll('.tab-btn');
-      const emptyScheduleState = document.getElementById('empty-schedule-state');
       const scheduleTableContainer = document.getElementById('schedule-table-container');
 
       // Input Form elements
@@ -1443,6 +1424,16 @@
       let unsubscribeLogListener = null;
       let unsubscribeConfigListener = null;
       let unsubscribeOccupancyListener = null;
+
+      // 12-Hour Time Formatter function
+      function formatTime12Hour(timeStr) {
+        if (!timeStr) return '';
+        let [hours, minutes] = timeStr.split(':');
+        hours = parseInt(hours, 10);
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        return `${hours}:${minutes} ${ampm}`;
+      }
 
       function showAlert(title, message) {
         modalTitle.textContent = title;
@@ -2096,6 +2087,7 @@
 
         try {
           if (selectedPurpose === 'PC') {
+            // Perform the active PC count query outside of the transaction block to prevent Firestore errors
             const activePcQuery = db.collection('attendance_logs')
               .where('status', '==', 'IN')
               .where('purpose', '==', 'PC');
@@ -2224,7 +2216,7 @@
         }
       }
 
-      // Weekly Timetable Logic via Tabbed UI
+      // Weekly Timetable Logic via Tabbed UI (Sorted Chronologically)
       function renderTimetable(schedules) {
         timetableBody.innerHTML = '';
         
@@ -2233,27 +2225,34 @@
           item.day && item.day.toLowerCase() === activeTabDay.toLowerCase()
         );
 
-        // Empty state check
+        // Empty state check with single empty-state row
         if (!filteredSchedules || filteredSchedules.length === 0) {
-          emptyScheduleState.style.display = 'block';
-          scheduleTableContainer.style.display = 'none';
+          scheduleTableContainer.style.display = 'block';
+          timetableBody.innerHTML = `<tr><td colspan="2" style="text-align: center; padding: 20px; color: var(--text-secondary);">No class sessions scheduled</td></tr>`;
           return;
         }
 
-        // Show table
-        emptyScheduleState.style.display = 'none';
         scheduleTableContainer.style.display = 'block';
 
+        const daysMap = { "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4, "friday": 5, "saturday": 6, "sunday": 7 };
+
+        // Sort chronologically by day and start time
         const sortedSchedules = [...filteredSchedules].sort((a, b) => {
+          const dayA = daysMap[(a.day || "").toLowerCase()] || 0;
+          const dayB = daysMap[(b.day || "").toLowerCase()] || 0;
+          if (dayA !== dayB) return dayA - dayB;
+
           const timeA = a.startTime || '00:00';
           const timeB = b.startTime || '00:00';
           return timeA.localeCompare(timeB);
         });
 
-        // Render schedule lists to the table
+        // Render schedule lists to the table using the new 12-hour format function
         sortedSchedules.forEach(item => {
           const tr = document.createElement('tr');
-          const timeStr = `${item.startTime || '00:00'} - ${item.endTime || '00:00'}`;
+          const start12 = formatTime12Hour(item.startTime);
+          const end12 = formatTime12Hour(item.endTime);
+          const timeStr = `${start12} - ${end12}`;
           tr.innerHTML = `
             <td class="time-badge">${timeStr}</td>
             <td class="course-badge">${item.courseName || item.subject || 'Class Session'}</td>
