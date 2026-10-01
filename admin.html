@@ -33,44 +33,6 @@
       --text-muted: #94a3b8;
 
       --brand-purple: #6366f1;
-      The following is the fully updated code for `admin.html`, derived from your base file Logbook Admin_3.txt[cite: 1]. It includes a new `to24HourFormat` converter so the HTML `<input type="time">` boxes properly render saved 12-hour AM/PM times from Firestore[cite: 1], and updates the save functions for both Operating Hours and Schedules to push clean standard strings (e.g., "11:12 PM") back to the database to ensure perfect sync with `index.html`.
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FUSEE Admin Portal | Digital Logbook</title>
-  
-  <!-- Google Font: Plus Jakarta Sans -->
-  <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
-  <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
-  <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap)" rel="stylesheet">
-
-  <!-- Mobile Settings -->
-  <meta name="theme-color" content="#ffffff">
-
-  <!-- Firebase Web SDKs (Compat version) -->
-  <script src="[https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js)"></script>
-  <script src="[https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js)"></script>
-  <script src="[https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js)"></script>
-  
-  <!-- ExcelJS Library for XLSX Export -->
-  <script src="[https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js](https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js)"></script>
-
-  <!-- Admin Theme Styling -->
-  <style>
-    :root {
-      --bg-main: #f8fafc;
-      --card-bg: #ffffff;
-      --card-border: rgba(99, 102, 241, 0.15);
-      
-      --text-primary: #0f172a;
-      --text-secondary: #475569;
-      --text-muted: #94a3b8;
-
-      --brand-purple: #6366f1;
       --brand-purple-dark: #4f46e5;
       --brand-pink: #ec4899;
       --brand-amber: #f59e0b;
@@ -599,33 +561,6 @@
     </div>
   </div>
 
-  <!-- Dedicated Modal for Manual Log Checkout -->
-  <div id="checkout-modal-root" class="custom-modal-overlay">
-    <div class="custom-modal" style="max-width: 420px; text-align: left;">
-      <div class="custom-modal-title" style="margin-bottom: 16px; font-size: 1.2rem;">🚪 Manual Student Checkout</div>
-      <form id="checkout-form">
-        <input type="hidden" id="checkout-log-id">
-        <div style="margin-bottom: 14px;">
-          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">STUDENT NAME</label>
-          <input type="text" id="checkout-student-name" class="search-input" style="width: 100%;" readonly disabled>
-        </div>
-        <div style="margin-bottom: 14px;">
-          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">CHECKOUT REASON</label>
-          <select id="checkout-reason" class="select-filter" style="width: 100%;" required>
-            <option value="Manual Admin Checkout">Manual Admin Checkout</option>
-            <option value="Lab Class Session">Lab Class Session</option>
-            <option value="Closing Hours">Closing Hours</option>
-            <option value="Forgotten Checkout">Forgotten Checkout</option>
-          </select>
-        </div>
-        <div class="custom-modal-actions" style="justify-content: flex-end; margin-top: 20px;">
-          <button type="button" id="checkout-cancel" class="btn btn-modal-cancel">Cancel</button>
-          <button type="submit" class="btn btn-modal-danger">Force Checkout</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
   <!-- Dedicated Modal for Editing Student Profiles -->
   <div id="edit-student-modal-root" class="custom-modal-overlay">
     <div class="custom-modal" style="max-width: 460px; text-align: left;">
@@ -721,10 +656,6 @@
         </div>
       </div>
       <div class="admin-controls">
-        <!-- Admin-Side Force Auto-Sweep -->
-        <button id="force-sweep-btn" class="btn" style="background: var(--brand-pink); color: #fff;">
-          🧹 Force Auto-Sweep
-        </button>
         <!-- Manual Lock Toggle Button -->
         <button id="toggle-lock-btn" class="btn" style="background: #f59e0b; color: #fff;">
           🔒 Lock Check-Ins
@@ -817,12 +748,11 @@
                 <th>Check In</th>
                 <th>Check Out</th>
                 <th>Status</th>
-                <th style="text-align: right; padding-right: 28px;">Actions</th>
               </tr>
             </thead>
             <tbody id="logs-table-body">
               <tr>
-                <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading live records...</td>
+                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading live records...</td>
               </tr>
             </tbody>
           </table>
@@ -867,19 +797,6 @@
 
     <!-- TAB 3: SCHEDULE MANAGER VIEW -->
     <div id="tab-schedule-view" style="display: none;">
-      <!-- Dynamic Lab Operating Hours Control Box -->
-      <section class="filter-bar" style="gap: 20px; align-items: flex-end; background: rgba(99, 102, 241, 0.05);">
-        <div style="flex: 1; max-width: 200px;">
-          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">LAB OPENING TIME</label>
-          <input type="time" id="config-open-time" class="time-filter" style="width: 100%;">
-        </div>
-        <div style="flex: 1; max-width: 200px;">
-          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">LAB CLOSING TIME</label>
-          <input type="time" id="config-close-time" class="time-filter" style="width: 100%;">
-        </div>
-        <button id="btn-save-hours" class="btn btn-export" style="margin-bottom: 2px;">💾 Save Operating Hours</button>
-      </section>
-
       <section class="filter-bar" style="justify-content: space-between;">
         <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-secondary);">Manage weekly recurring classes to trigger auto-sweeps.</div>
         <button id="btn-add-schedule" class="btn btn-export">➕ Add Class Schedule</button>
@@ -957,53 +874,6 @@
     }
     const auth = firebase.auth();
     const db = firebase.firestore();
-
-    // Normalized Time Engine: parse standard AM/PM and military time strings to total minutes from midnight
-    function parseToMinutes(timeStr) {
-      if (!timeStr) return null;
-      timeStr = timeStr.trim().toUpperCase();
-      
-      const ampmMatch = timeStr.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/);
-      if (ampmMatch) {
-        let hours = parseInt(ampmMatch[1], 10);
-        const minutes = parseInt(ampmMatch[2], 10);
-        const period = ampmMatch[3];
-        if (period === 'PM' && hours < 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
-        return hours * 60 + minutes;
-      }
-
-      const militaryMatch = timeStr.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
-      if (militaryMatch) {
-        const hours = parseInt(militaryMatch[1], 10);
-        const minutes = parseInt(militaryMatch[2], 10);
-        return hours * 60 + minutes;
-      }
-
-      return null;
-    }
-
-    // Convert any format to 12-hour Standard String for Firestore Database
-    function formatTimeHHMM(timeStr) {
-      if (!timeStr) return '';
-      const mins = parseToMinutes(timeStr);
-      if (mins === null) return timeStr;
-      let hours = Math.floor(mins / 60);
-      const m = mins % 60;
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12 || 12;
-      return `${hours.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${ampm}`;
-    }
-
-    // Convert any format to 24-hour String to set values in HTML <input type="time">
-    function to24HourFormat(timeStr) {
-      if (!timeStr) return '';
-      const mins = parseToMinutes(timeStr);
-      if (mins === null) return timeStr;
-      const h = Math.floor(mins / 60).toString().padStart(2, '0');
-      const m = (mins % 60).toString().padStart(2, '0');
-      return `${h}:${m}`;
-    }
 
     // Custom Modal System Implementation
     function showModal({ type = 'alert', title = 'System Notification', message = '', icon = 'ℹ️', inputPlaceholder = '', confirmText = 'OK', cancelText = 'Cancel', isDanger = false }) {
@@ -1085,6 +955,7 @@
       const loginErr = document.getElementById('admin-login-error');
       const logoutBtn = document.getElementById('admin-logout-btn');
 
+      // Tab Elements
       const tabBtnLogs = document.getElementById('tab-btn-logs');
       const tabBtnStudents = document.getElementById('tab-btn-students');
       const tabBtnSchedule = document.getElementById('tab-btn-schedule');
@@ -1096,22 +967,23 @@
       const tabWhitelistView = document.getElementById('tab-whitelist-view');
       let currentTab = 'logs';
 
+      // Log Filters
       const filterSearch = document.getElementById('filter-search');
       const filterYear = document.getElementById('filter-year');
       const filterStatus = document.getElementById('filter-status');
       const filterPurpose = document.getElementById('filter-purpose');
       const filterDate = document.getElementById('filter-date');
       
+      // Directory Filters
       const filterStudentSearch = document.getElementById('filter-student-search');
       const filterStudentYear = document.getElementById('filter-student-year');
 
+      // Whitelist Elements
       const whitelistEmailInput = document.getElementById('whitelist-email-input');
       const btnAddWhitelist = document.getElementById('btn-add-whitelist');
       const whitelistTableBody = document.getElementById('whitelist-table-body');
 
       const exportExcelBtn = document.getElementById('export-excel-btn');
-      const forceSweepBtn = document.getElementById('force-sweep-btn');
-      
       const logsTableBody = document.getElementById('logs-table-body');
       const studentsTableBody = document.getElementById('students-table-body');
       const schedulesTableBody = document.getElementById('schedules-table-body');
@@ -1123,11 +995,7 @@
       const metricRegisteredStudents = document.getElementById('metric-registered-students');
 
       const toggleLockBtn = document.getElementById('toggle-lock-btn');
-      const btnSaveHours = document.getElementById('btn-save-hours');
-      
       let isLocked = false;
-      let labOpenTime = "08:00"; 
-      let labCloseTime = "21:00";
 
       let rawLogs = [];
       let rawUsers = [];
@@ -1139,6 +1007,7 @@
       let unsubscribeConfig = null;
       let unsubscribeWhitelist = null;
 
+      // Handle Tab Switch Actions
       function switchTab(tab) {
         currentTab = tab;
         tabBtnLogs.classList.remove('active');
@@ -1171,6 +1040,7 @@
       tabBtnSchedule.addEventListener('click', () => switchTab('schedule'));
       tabBtnWhitelist.addEventListener('click', () => switchTab('whitelist'));
 
+      // Handle Authentication Observer
       auth.onAuthStateChanged((user) => {
         if (user) {
           loginScreen.style.display = 'none';
@@ -1207,41 +1077,27 @@
         listenToLogs();
         listenToWhitelist();
         
-        setInterval(async () => {
+        // Execute background sweep evaluation every 60 seconds to catch precise class start times
+        setInterval(() => {
           if (rawLogs && rawLogs.length > 0) {
-            await runAutoCheckoutSweep(rawLogs);
-            updateMetrics(rawLogs);
-            renderLogsTable();
+            runAutoCheckoutSweep(rawLogs);
           }
         }, 60000); 
       }
 
+      // Initialize Settings, Locks & Schedules
       function listenToConfig() {
         if (unsubscribeConfig) unsubscribeConfig();
-        unsubscribeConfig = db.collection('settings').doc('labConfig').onSnapshot(async (doc) => {
+        unsubscribeConfig = db.collection('settings').doc('labConfig').onSnapshot(doc => {
           if (doc.exists) {
             const data = doc.data();
             isLocked = !!data.manualLock;
             toggleLockBtn.textContent = isLocked ? '🔓 Unlock Check-Ins' : '🔒 Lock Check-Ins';
             globalSchedules = data.schedules || [];
-            
-            // Format incoming strings to 24-hour so HTML input components accept them
-            if (data.openTime) {
-                labOpenTime = data.openTime;
-                document.getElementById('config-open-time').value = to24HourFormat(data.openTime);
-            }
-            if (data.closeTime) {
-                labCloseTime = data.closeTime;
-                document.getElementById('config-close-time').value = to24HourFormat(data.closeTime);
-            }
+            renderSchedulesTable();
           } else {
             globalSchedules = [];
-          }
-          renderSchedulesTable();
-          if (rawLogs && rawLogs.length > 0) {
-            await runAutoCheckoutSweep(rawLogs);
-            updateMetrics(rawLogs);
-            renderLogsTable();
+            renderSchedulesTable();
           }
         });
       }
@@ -1258,35 +1114,6 @@
           });
         } catch (err) {
           await showModal({ type: 'alert', title: 'Error', icon: '❌', message: "Failed to update lock status: " + err.message });
-        }
-      });
-
-      btnSaveHours.addEventListener('click', async () => {
-        const oTimeRaw = document.getElementById('config-open-time').value;
-        const cTimeRaw = document.getElementById('config-close-time').value;
-        
-        if (!oTimeRaw || !cTimeRaw) return showModal({ type: 'alert', title: 'Error', message: 'Please set both opening and closing times.' });
-        
-        // Convert input 24-hour box values back to clean standard strings before saving
-        const oTimeStandard = formatTimeHHMM(oTimeRaw);
-        const cTimeStandard = formatTimeHHMM(cTimeRaw);
-
-        try {
-          await db.collection('settings').doc('labConfig').set({ openTime: oTimeStandard, closeTime: cTimeStandard }, { merge: true });
-          await showModal({ type: 'alert', title: 'Success', icon: '✅', message: 'Lab operating hours updated.' });
-        } catch (err) {
-          await showModal({ type: 'alert', title: 'Error', message: err.message });
-        }
-      });
-
-      forceSweepBtn.addEventListener('click', async () => {
-        if (rawLogs && rawLogs.length > 0) {
-          await runAutoCheckoutSweep(rawLogs, true); 
-          updateMetrics(rawLogs);
-          renderLogsTable();
-          await showModal({ type: 'alert', title: 'Sweep Complete', icon: '🧹', message: 'Manual auto-sweep executed successfully. All expired active logs have been cleaned.' });
-        } else {
-          await showModal({ type: 'alert', title: 'No Logs', message: 'There are no active logs to sweep.' });
         }
       });
 
@@ -1313,9 +1140,9 @@
         unsubscribeLogs = db.collection('attendance_logs')
           .orderBy('createdAt', 'desc')
           .limit(500)
-          .onSnapshot(async (snapshot) => {
+          .onSnapshot((snapshot) => {
             rawLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            await runAutoCheckoutSweep(rawLogs);
+            runAutoCheckoutSweep(rawLogs);
             updateMetrics(rawLogs);
             renderLogsTable();
           });
@@ -1329,103 +1156,57 @@
         });
       }
 
-      async function runAutoCheckoutSweep(logs, forceSweep = false) {
-        if (!logs || logs.length === 0) return;
-
+      // Automated Log Sweep Routine without fixed curfew time restrictions
+      async function runAutoCheckoutSweep(logs) {
         const now = new Date();
         const todayISO = now.toISOString().slice(0, 10);
-        const currentDayOfWeek = now.getDay();
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const dayOfWeek = now.getDay(); 
+        const currentHHMM = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+        
+        let isSweepTrigger = false;
+        
+        // Exact class start time trigger
         const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const todayName = daysMap[currentDayOfWeek];
-
-        let closingMinutes = parseToMinutes(labCloseTime) || (21 * 60); 
-        let closingTimeDisplay = formatTimeHHMM(labCloseTime) || '09:00 PM';
-
-        const todaySchedules = (globalSchedules || [])
-          .filter(s => s.day === todayName)
-          .map(s => ({
-            ...s,
-            startMins: parseToMinutes(s.startTime),
-            endMins: parseToMinutes(s.endTime)
-          }))
-          .filter(s => s.startMins !== null);
-
-        const batchQueue = [];
-
-        logs.forEach(log => {
-          if (log.status !== 'IN') return;
-
-          let shouldCheckout = false;
-          let targetCheckoutTime = '';
-          let reason = '';
-
-          const logDateISO = log.date;
-          const checkInMins = parseToMinutes(log.checkInTime);
-
-          if (logDateISO && logDateISO < todayISO) {
-            shouldCheckout = true;
-            targetCheckoutTime = closingTimeDisplay;
-            reason = 'Overnight Auto-Sweep';
-          } 
-          else if (logDateISO === todayISO) {
-            if (forceSweep || (closingMinutes !== null && currentMinutes >= closingMinutes)) {
-              shouldCheckout = true;
-              targetCheckoutTime = forceSweep ? formatTimeHHMM(`${now.getHours()}:${now.getMinutes()}`) : closingTimeDisplay;
-              reason = forceSweep ? 'Manual Admin Sweep' : 'Lab Closing Sweep';
-            }
-
-            if (!shouldCheckout && todaySchedules.length > 0) {
-              for (let sched of todaySchedules) {
-                if (currentMinutes >= sched.startMins && (checkInMins === null || checkInMins <= sched.startMins)) {
-                  shouldCheckout = true;
-                  targetCheckoutTime = formatTimeHHMM(sched.startTime);
-                  reason = `Class Schedule (${sched.courseName})`;
-                  break;
+        const todayName = daysMap[dayOfWeek];
+        if (globalSchedules) {
+            const todayClasses = globalSchedules.filter(s => s.day === todayName);
+            for (let c of todayClasses) {
+                if (currentHHMM === c.startTime) {
+                    isSweepTrigger = true;
+                    break;
                 }
-              }
             }
-          }
+        }
 
-          if (shouldCheckout) {
-            log.status = 'OUT';
-            log.checkOutTime = targetCheckoutTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            log.checkedOutBy = 'auto_sweep';
-            log.checkoutReason = reason;
-
-            batchQueue.push({
-              id: log.id,
-              status: 'OUT',
-              checkOutTime: log.checkOutTime,
-              checkedOutBy: 'auto_sweep',
-              checkoutReason: reason
-            });
-          }
+        const pendingSweepLogs = logs.filter(log => {
+          if (log.status !== 'IN') return false;
+          // Case A: Past Date unclosed logs
+          if (log.date && log.date < todayISO) return true;
+          // Case B: Trigger condition met for today
+          if (log.date === todayISO && isSweepTrigger) return true;
+          return false;
         });
 
-        if (batchQueue.length > 0) {
-          const CHUNK_SIZE = 400;
-          for (let i = 0; i < batchQueue.length; i += CHUNK_SIZE) {
-            const chunk = batchQueue.slice(i, i + CHUNK_SIZE);
-            const batch = db.batch();
+        if (pendingSweepLogs.length === 0) return;
 
-            chunk.forEach(item => {
-              const docRef = db.collection('attendance_logs').doc(item.id);
-              batch.update(docRef, {
-                status: item.status,
-                checkOutTime: item.checkOutTime,
-                checkedOutBy: item.checkedOutBy,
-                checkoutReason: item.checkoutReason,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-            });
+        const batch = db.batch();
+        pendingSweepLogs.forEach(log => {
+          const docRef = db.collection('attendance_logs').doc(log.id);
+          batch.update(docRef, {
+            status: 'OUT',
+            checkOutTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            checkedOutBy: 'auto_sweep',
+            checkoutReason: 'Scheduled Sweep',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        });
 
-            try {
-              await batch.commit();
-            } catch (err) {
-              console.error("Firestore batch commit error during lazy autosweep:", err);
-            }
-          }
+        try {
+          await batch.commit();
+        } catch (err) {
+          console.error("Error executing automated check-out sweep:", err);
         }
       }
 
@@ -1471,7 +1252,7 @@
         });
 
         if (filtered.length === 0) {
-          logsTableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 30px;">No matching log records found.</td></tr>`;
+          logsTableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">No matching log records found.</td></tr>`;
           return;
         }
 
@@ -1485,10 +1266,6 @@
             ? `<span class="badge-status badge-pc">💻 PC</span>` 
             : (log.purpose === 'Table' ? `<span class="badge-status badge-table">🪑 Table</span>` : '—');
 
-          const actionBtn = isIn 
-            ? `<button class="btn-action-danger" onclick="openCheckoutModal('${log.id}', '${escapeQuotes(log._displayName)}')">🚪 Check Out</button>`
-            : '—';
-
           return `
             <tr>
               <td>${log.date || '—'}</td>
@@ -1499,11 +1276,6 @@
               <td>${log.checkInTime || '—'}</td>
               <td>${log.checkOutTime || '—'}</td>
               <td>${statusBadge}</td>
-              <td style="text-align: right;">
-                <div class="action-btn-group" style="justify-content: flex-end;">
-                  ${actionBtn}
-                </div>
-              </td>
             </tr>
           `;
         }).join('');
@@ -1559,6 +1331,7 @@
           return;
         }
 
+        // Sort schedules by Day, then Start Time
         const daysOrder = { 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 7 };
         const sorted = [...globalSchedules].sort((a, b) => {
           if (daysOrder[a.day] !== daysOrder[b.day]) return daysOrder[a.day] - daysOrder[b.day];
@@ -1608,61 +1381,116 @@
         }).join('');
       }
 
+      function formatTimeHHMM(timeStr) {
+        if (!timeStr) return '';
+        const [h, m] = timeStr.split(':');
+        let hours = parseInt(h);
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        return `${hours.toString().padStart(2, '0')}:${m} ${ampm}`;
+      }
+
       function escapeQuotes(str) {
         return (str || '').replace(/'/g, "\\'");
       }
 
-      // Checkout Handler Functions
-      window.openCheckoutModal = function(logId, studentName) {
-        document.getElementById('checkout-log-id').value = logId;
-        document.getElementById('checkout-student-name').value = studentName || 'Student';
-        document.getElementById('checkout-modal-root').classList.add('active');
+      // Schedule Manager Helpers
+      window.openScheduleModal = function(id = null) {
+        const modal = document.getElementById('schedule-modal-root');
+        if (id) {
+          const sched = globalSchedules.find(s => s.id === id);
+          if (sched) {
+            document.getElementById('schedule-id').value = sched.id;
+            document.getElementById('schedule-course').value = sched.courseName;
+            document.getElementById('schedule-day').value = sched.day;
+            document.getElementById('schedule-start').value = sched.startTime;
+            document.getElementById('schedule-end').value = sched.endTime;
+          }
+        } else {
+          document.getElementById('schedule-id').value = '';
+          document.getElementById('schedule-form').reset();
+        }
+        modal.classList.add('active');
       };
 
-      document.getElementById('checkout-cancel').addEventListener('click', () => {
-        document.getElementById('checkout-modal-root').classList.remove('active');
+      document.getElementById('btn-add-schedule').addEventListener('click', () => {
+        openScheduleModal();
       });
 
-      document.getElementById('checkout-form').addEventListener('submit', async (e) => {
+      document.getElementById('schedule-cancel').addEventListener('click', () => {
+        document.getElementById('schedule-modal-root').classList.remove('active');
+      });
+
+      document.getElementById('schedule-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const logId = document.getElementById('checkout-log-id').value;
-        const reason = document.getElementById('checkout-reason').value;
-        const checkOutTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const id = document.getElementById('schedule-id').value || `sched_${Date.now()}`;
+        const courseName = document.getElementById('schedule-course').value.trim();
+        const day = document.getElementById('schedule-day').value;
+        const startTime = document.getElementById('schedule-start').value;
+        const endTime = document.getElementById('schedule-end').value;
+
+        const newSchedule = { id, courseName, day, startTime, endTime };
+        const otherSchedules = globalSchedules.filter(s => s.id !== id);
+        const updatedSchedules = [...otherSchedules, newSchedule];
 
         try {
-          await db.collection('attendance_logs').doc(logId).update({
-            status: 'OUT',
-            checkOutTime: checkOutTimeStr,
-            checkedOutBy: 'admin',
-            checkoutReason: reason,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          document.getElementById('checkout-modal-root').classList.remove('active');
-          await showModal({ type: 'alert', title: 'Checked Out', icon: '✅', message: 'Student has been forced checked out successfully.' });
+          await db.collection('settings').doc('labConfig').set({ schedules: updatedSchedules }, { merge: true });
+          document.getElementById('schedule-modal-root').classList.remove('active');
+          await showModal({ type: 'alert', title: 'Schedule Saved', icon: '✅', message: `Class schedule for ${courseName} successfully saved.` });
         } catch (err) {
-          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: err.message });
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: "Failed to save schedule: " + err.message });
         }
       });
 
-      // Filter Events
-      filterSearch.addEventListener('input', renderLogsTable);
-      filterYear.addEventListener('change', renderLogsTable);
-      filterStatus.addEventListener('change', renderLogsTable);
-      filterPurpose.addEventListener('change', renderLogsTable);
-      filterDate.addEventListener('change', renderLogsTable);
+      window.deleteSchedule = async function(id) {
+        const confirmDel = await showModal({
+          type: 'confirm',
+          title: 'Delete Schedule',
+          icon: '⚠️',
+          message: `Are you sure you want to remove this recurring class?`,
+          confirmText: 'Delete',
+          isDanger: true
+        });
 
-      filterStudentSearch.addEventListener('input', renderStudentsTable);
-      filterStudentYear.addEventListener('change', renderStudentsTable);
+        if (!confirmDel) return;
 
-      // Student Edit Handlers
+        const updatedSchedules = globalSchedules.filter(s => s.id !== id);
+        try {
+          await db.collection('settings').doc('labConfig').set({ schedules: updatedSchedules }, { merge: true });
+        } catch (err) {
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to delete schedule: ' + err.message });
+        }
+      };
+
+      // Student Edit Functions
       window.openEditStudentModal = function(userId) {
         const user = rawUsers.find(u => u.id === userId);
-        if(!user) return;
+        if (!user) return;
         document.getElementById('edit-student-id').value = user.id;
         document.getElementById('edit-student-name').value = user.fullName || '';
         document.getElementById('edit-student-email').value = user.email || '';
         document.getElementById('edit-student-year').value = user.yearLevel || '1st Year';
         document.getElementById('edit-student-modal-root').classList.add('active');
+      };
+
+      window.kickOutStudent = async function(userId, fullName, email) {
+        const confirmed = await showModal({
+          type: 'confirm',
+          title: 'Kick Out Student',
+          icon: '⚠️',
+          message: `Are you sure you want to kick out/remove ${fullName || email} from the registered database?`,
+          confirmText: 'Kick Out',
+          isDanger: true
+        });
+
+        if (!confirmed) return;
+
+        try {
+          await db.collection('users').doc(userId).delete();
+          await showModal({ type: 'alert', title: 'Student Removed', icon: '✅', message: `${fullName || email} removed.` });
+        } catch (err) {
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to delete student: ' + err.message });
+        }
       };
 
       document.getElementById('edit-student-cancel').addEventListener('click', () => {
@@ -1671,216 +1499,228 @@
 
       document.getElementById('edit-student-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const id = document.getElementById('edit-student-id').value;
+        const userId = document.getElementById('edit-student-id').value;
         const fullName = document.getElementById('edit-student-name').value.trim();
         const email = document.getElementById('edit-student-email').value.trim();
         const yearLevel = document.getElementById('edit-student-year').value;
 
         try {
-          await db.collection('users').doc(id).update({
-            fullName,
-            email,
-            yearLevel
-          });
+          await db.collection('users').doc(userId).update({ fullName, email, yearLevel });
           document.getElementById('edit-student-modal-root').classList.remove('active');
-          await showModal({ type: 'alert', title: 'Success', icon: '✅', message: 'Student profile updated successfully.' });
-        } catch(err) {
-          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: err.message });
+          await showModal({ type: 'alert', title: 'Profile Updated', icon: '✅', message: `Student record successfully updated!` });
+        } catch (err) {
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to update student profile: ' + err.message });
         }
       });
 
-      window.kickOutStudent = async function(userId, studentName, email) {
-        const confirm = await showModal({
-          type: 'confirm',
-          title: 'Confirm Removal',
-          icon: '⚠️',
-          message: `Are you sure you want to permanently delete ${studentName}'s record from the system?`,
-          confirmText: 'Yes, Delete',
-          isDanger: true
-        });
-        if(confirm) {
-          try {
-            await db.collection('users').doc(userId).delete();
-            await showModal({ type: 'alert', title: 'Deleted', icon: '✅', message: 'Student record deleted.' });
-          } catch(err) {
-            await showModal({ type: 'alert', title: 'Error', icon: '❌', message: err.message });
-          }
-        }
-      };
-
-      // Schedule CRUD Functions
-      document.getElementById('btn-add-schedule').addEventListener('click', () => {
-        document.getElementById('schedule-form').reset();
-        document.getElementById('schedule-id').value = '';
-        document.getElementById('schedule-modal-root').classList.add('active');
-      });
-
-      window.openScheduleModal = function(schedId) {
-        const sched = globalSchedules.find(s => s.id === schedId);
-        if(!sched) return;
-        document.getElementById('schedule-id').value = sched.id;
-        document.getElementById('schedule-course').value = sched.courseName || '';
-        document.getElementById('schedule-day').value = sched.day || 'Monday';
-        
-        // Convert to 24-hour format so HTML time input components accept the values
-        document.getElementById('schedule-start').value = to24HourFormat(sched.startTime) || '';
-        document.getElementById('schedule-end').value = to24HourFormat(sched.endTime) || '';
-        
-        document.getElementById('schedule-modal-root').classList.add('active');
-      };
-
-      document.getElementById('schedule-cancel').addEventListener('click', () => {
-        document.getElementById('schedule-modal-root').classList.remove('active');
-      });
-
-      document.getElementById('schedule-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('schedule-id').value;
-        const courseName = document.getElementById('schedule-course').value.trim();
-        const day = document.getElementById('schedule-day').value;
-        const startTimeRaw = document.getElementById('schedule-start').value;
-        const endTimeRaw = document.getElementById('schedule-end').value;
-
-        const startM = parseToMinutes(startTimeRaw);
-        const endM = parseToMinutes(endTimeRaw);
-        if(startM >= endM) {
-          return showModal({ type: 'alert', title: 'Invalid Time', message: 'Start time must be before end time.' });
-        }
-
-        // Convert back to standard 12-hour strings before writing to Firestore
-        const startTimeStr = formatTimeHHMM(startTimeRaw);
-        const endTimeStr = formatTimeHHMM(endTimeRaw);
-
-        const newSched = {
-          id: id || 'sched_' + Date.now().toString() + '_' + Math.floor(Math.random()*1000),
-          courseName,
-          day,
-          startTime: startTimeStr,
-          endTime: endTimeStr
-        };
-
-        let updatedSchedules = [...globalSchedules];
-        if (id) {
-          updatedSchedules = updatedSchedules.map(s => s.id === id ? newSched : s);
-        } else {
-          updatedSchedules.push(newSched);
-        }
-
-        try {
-          await db.collection('settings').doc('labConfig').set({ schedules: updatedSchedules }, { merge: true });
-          document.getElementById('schedule-modal-root').classList.remove('active');
-          await showModal({ type: 'alert', title: 'Success', icon: '✅', message: 'Schedule saved successfully.' });
-        } catch(err) {
-          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: err.message });
-        }
-      });
-
-      window.deleteSchedule = async function(schedId) {
-        const confirm = await showModal({
-          type: 'confirm',
-          title: 'Confirm Deletion',
-          icon: '⚠️',
-          message: 'Are you sure you want to delete this schedule? Active students will no longer be auto-swept at this time.',
-          confirmText: 'Delete',
-          isDanger: true
-        });
-        if(confirm) {
-          const updatedSchedules = globalSchedules.filter(s => s.id !== schedId);
-          try {
-            await db.collection('settings').doc('labConfig').set({ schedules: updatedSchedules }, { merge: true });
-          } catch(err) {
-            await showModal({ type: 'alert', title: 'Error', icon: '❌', message: err.message });
-          }
-        }
-      };
-
-      // Whitelist Actions
+      // Whitelist Logic
       btnAddWhitelist.addEventListener('click', async () => {
-        const email = whitelistEmailInput.value.trim().toLowerCase();
-        if(!email) return showModal({ type: 'alert', title: 'Invalid Input', message: 'Please enter a valid email address.' });
-        if(rawWhitelist.find(w => w.email === email)) {
-          return showModal({ type: 'alert', title: 'Duplicate', message: 'Email is already whitelisted.' });
+        const emailRaw = whitelistEmailInput.value.trim();
+        const cleanEmail = emailRaw.toLowerCase();
+        
+        if (!cleanEmail.endsWith('@addu.edu.ph')) {
+          await showModal({ type: 'alert', title: 'Invalid Email', icon: '❌', message: 'Email must end with @addu.edu.ph' });
+          return;
         }
 
         try {
-          await db.collection('allowed_students').add({
-            email: email,
+          await db.collection('allowed_students').doc(cleanEmail).set({
+            email: cleanEmail,
             addedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
           whitelistEmailInput.value = '';
-          await showModal({ type: 'alert', title: 'Success', icon: '✅', message: 'Email added to whitelist.' });
-        } catch(err) {
-          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: err.message });
+          await showModal({ type: 'alert', title: 'Success', icon: '✅', message: 'Email successfully added to whitelist.' });
+        } catch (error) {
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to add email: ' + error.message });
         }
       });
 
-      window.removeWhitelistEmail = async function(id) {
-        const confirm = await showModal({
+      window.removeWhitelistEmail = async function(emailId) {
+        const confirmDel = await showModal({
           type: 'confirm',
-          title: 'Confirm Removal',
+          title: 'Remove Whitelist Access',
           icon: '⚠️',
-          message: 'Are you sure you want to remove this email from the whitelist? The user will no longer be able to log in.',
+          message: `Are you sure you want to remove ${emailId} from the whitelist? This immediately revokes their logbook portal access.`,
           confirmText: 'Remove',
           isDanger: true
         });
-        if(confirm) {
-          try {
-            await db.collection('allowed_students').doc(id).delete();
-          } catch(err) {
-            await showModal({ type: 'alert', title: 'Error', icon: '❌', message: err.message });
-          }
+
+        if (!confirmDel) return;
+
+        try {
+          await db.collection('allowed_students').doc(emailId).delete();
+        } catch (err) {
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to remove email: ' + err.message });
         }
       };
 
-      // Excel Export functionality
-      exportExcelBtn.addEventListener('click', async () => {
-        if (!rawLogs || rawLogs.length === 0) {
-          return showModal({ type: 'alert', title: 'Export Failed', message: 'No logs available to export.' });
-        }
-        
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Attendance Logs');
-
-        worksheet.columns = [
-          { header: 'Date', key: 'date', width: 12 },
-          { header: 'Student Name', key: 'name', width: 25 },
-          { header: 'Email', key: 'email', width: 30 },
-          { header: 'Year Level', key: 'year', width: 15 },
-          { header: 'Purpose', key: 'purpose', width: 15 },
-          { header: 'Check In', key: 'checkin', width: 15 },
-          { header: 'Check Out', key: 'checkout', width: 15 },
-          { header: 'Status', key: 'status', width: 10 },
-          { header: 'Checked Out By', key: 'checkedoutby', width: 15 },
-          { header: 'Reason', key: 'reason', width: 25 }
-        ];
-
-        worksheet.getRow(1).font = { bold: true };
-
-        rawLogs.forEach(log => {
-          worksheet.addRow({
-            date: log.date || '',
-            name: log._displayName || log.fullName || '',
-            email: log.email || '',
-            year: log._displayYear || log.yearLevel || '',
-            purpose: log.purpose || '',
-            checkin: log.checkInTime || '',
-            checkout: log.checkOutTime || '',
-            status: log.status || '',
-            checkedoutby: log.checkedOutBy || '',
-            reason: log.checkoutReason || ''
-          });
-        });
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Lab_Logs_${new Date().toISOString().slice(0,10)}.xlsx`;
-        a.click();
-        URL.revokeObjectURL(url);
+      // Filter Listeners
+      [filterSearch, filterYear, filterStatus, filterPurpose, filterDate].forEach(el => {
+        el.addEventListener('input', renderLogsTable);
+        el.addEventListener('change', renderLogsTable);
       });
 
+      [filterStudentSearch, filterStudentYear].forEach(el => {
+        el.addEventListener('input', renderStudentsTable);
+        el.addEventListener('change', renderStudentsTable);
+      });
+
+      // ExcelJS Export Logic
+      exportExcelBtn.addEventListener('click', async () => {
+        if (typeof ExcelJS === 'undefined') {
+            await showModal({ type: 'alert', title: 'Export Error', icon: '❌', message: 'ExcelJS library failed to load.' });
+            return;
+        }
+
+        const workbook = new ExcelJS.Workbook();
+
+        if (currentTab === 'logs') {
+          if (!rawLogs || rawLogs.length === 0) {
+            await showModal({ type: 'alert', title: 'Export Failed', icon: '📉', message: "No log data available to export." });
+            return;
+          }
+
+          const worksheet = workbook.addWorksheet('Attendance Logs');
+          worksheet.views = [{ state: 'frozen', xSplit: 0, ySplit: 1 }];
+
+          worksheet.columns = [
+            { header: 'Date', key: 'date', style: { alignment: { horizontal: 'center' } } },
+            { header: 'Student Name', key: 'name', style: { alignment: { horizontal: 'left' } } },
+            { header: 'AdDU Email', key: 'email', style: { alignment: { horizontal: 'left' } } },
+            { header: 'Year Level', key: 'year', style: { alignment: { horizontal: 'center' } } },
+            { header: 'Purpose', key: 'purpose', style: { alignment: { horizontal: 'left' } } },
+            { header: 'Check In', key: 'checkIn', style: { alignment: { horizontal: 'center' } } },
+            { header: 'Check Out', key: 'checkOut', style: { alignment: { horizontal: 'center' } } },
+            { header: 'Status', key: 'status', style: { alignment: { horizontal: 'center' } } },
+            { header: 'Action By', key: 'actionBy', style: { alignment: { horizontal: 'center' } } },
+            { header: 'Reason', key: 'reason', style: { alignment: { horizontal: 'left' } } }
+          ];
+
+          // Format Header Row
+          const headerRow = worksheet.getRow(1);
+          headerRow.eachCell((cell) => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          });
+
+          rawLogs.forEach((log, index) => {
+            const emailKey = log.email ? log.email.toLowerCase() : '';
+            const currentName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : (log.fullName || '');
+            const currentYear = (usersMap[emailKey] && usersMap[emailKey].yearLevel) ? usersMap[emailKey].yearLevel : (log.yearLevel || '');
+
+            const row = worksheet.addRow({
+              date: log.date || '',
+              name: currentName,
+              email: log.email || '',
+              year: currentYear,
+              purpose: log.purpose || '',
+              checkIn: log.checkInTime || '',
+              checkOut: log.checkOutTime || '',
+              status: log.status || '',
+              actionBy: log.checkedOutBy || 'student',
+              reason: log.checkoutReason || ''
+            });
+
+            // Alternate Row Colors (Very light gray vs white)
+            const bgColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF3F4F6'; 
+            row.eachCell({ includeEmpty: true }, (cell) => {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+            });
+
+            // Status Badge Formatting
+            const statusCell = row.getCell('status');
+            if (log.status === 'IN') {
+              statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
+              statusCell.font = { color: { argb: 'FF065F46' }, bold: true };
+            } else if (log.status === 'OUT') {
+              statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } };
+              statusCell.font = { color: { argb: 'FF991B1B' }, bold: true };
+            }
+          });
+
+          autoFitColumns(worksheet);
+          triggerDownload(workbook, `FUSEE_Lab_Logs_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+        } else if (currentTab === 'students') {
+          if (!rawUsers || rawUsers.length === 0) {
+            await showModal({ type: 'alert', title: 'Export Failed', icon: '📉', message: "No registered students data to export." });
+            return;
+          }
+
+          const sortedUsers = [...rawUsers].sort((a, b) => {
+            const rankA = getYearRank(a.yearLevel);
+            const rankB = getYearRank(b.yearLevel);
+            if (rankA !== rankB) return rankA - rankB;
+            const lastNameA = getLastName(a.fullName);
+            const lastNameB = getLastName(b.fullName);
+            if (lastNameA !== lastNameB) return lastNameA.localeCompare(lastNameB);
+            return (a.fullName || '').localeCompare(b.fullName || '');
+          });
+
+          const worksheet = workbook.addWorksheet('Registered Students');
+          worksheet.views = [{ state: 'frozen', xSplit: 0, ySplit: 1 }];
+
+          worksheet.columns = [
+            { header: 'Student Name', key: 'name', style: { alignment: { horizontal: 'left' } } },
+            { header: 'AdDU Email', key: 'email', style: { alignment: { horizontal: 'left' } } },
+            { header: 'Year Level', key: 'year', style: { alignment: { horizontal: 'center' } } }
+          ];
+
+          const headerRow = worksheet.getRow(1);
+          headerRow.eachCell((cell) => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          });
+
+          sortedUsers.forEach((user, index) => {
+            const row = worksheet.addRow({
+              name: user.fullName || '',
+              email: user.email || '',
+              year: user.yearLevel || ''
+            });
+            const bgColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF3F4F6';
+            row.eachCell({ includeEmpty: true }, (cell) => {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+            });
+          });
+
+          autoFitColumns(worksheet);
+          triggerDownload(workbook, `FUSEE_Registered_Students_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+        } else {
+            await showModal({ type: 'alert', title: 'Notice', icon: 'ℹ️', message: "Export is only available for Logs and Student Directory." });
+        }
+      });
+
+      // Helper function to dynamically auto-fit columns
+      function autoFitColumns(worksheet) {
+        worksheet.columns.forEach(column => {
+          let maxLength = 0;
+          column.eachCell({ includeEmpty: true }, cell => {
+            const columnLength = cell.value ? cell.value.toString().length : 10;
+            if (columnLength > maxLength) {
+              maxLength = columnLength;
+            }
+          });
+          column.width = maxLength < 10 ? 10 : maxLength + 2;
+        });
+      }
+
+      // Helper function to compile and download the buffer
+      async function triggerDownload(workbook, filename) {
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }
     });
   </script>
 </body>
