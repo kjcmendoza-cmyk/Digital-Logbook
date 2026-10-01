@@ -149,6 +149,17 @@
       transform: translateY(-1px);
     }
 
+    .btn-reset {
+      background: rgba(239, 68, 68, 0.12);
+      color: #dc2626;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-reset:hover {
+      background: #ef4444;
+      color: #ffffff;
+    }
+
     .btn-logout {
       background: rgba(239, 68, 68, 0.1);
       color: #ef4444;
@@ -282,6 +293,7 @@
       font-size: 0.9rem;
     }
 
+    /* Force table cells onto a single line */
     th {
       background: #f1f5f9;
       padding: 14px 18px;
@@ -291,6 +303,7 @@
       text-transform: uppercase;
       letter-spacing: 0.6px;
       border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+      white-space: nowrap;
     }
 
     td {
@@ -298,6 +311,7 @@
       border-bottom: 1px solid rgba(148, 163, 184, 0.15);
       color: var(--text-primary);
       font-weight: 500;
+      white-space: nowrap;
     }
 
     tr:last-child td {
@@ -565,7 +579,7 @@
       <div id="custom-modal-icon" class="custom-modal-icon">ℹ️</div>
       <div id="custom-modal-title" class="custom-modal-title">Notification</div>
       <div id="custom-modal-message" class="custom-modal-message"></div>
-      <input type="password" id="custom-modal-input" class="custom-modal-input" />
+      <input type="text" id="custom-modal-input" class="custom-modal-input" />
       <div class="custom-modal-actions">
         <button id="custom-modal-btn-cancel" class="btn btn-modal-cancel">Cancel</button>
         <button id="custom-modal-btn-confirm" class="btn btn-modal-confirm">OK</button>
@@ -687,6 +701,11 @@
           🔒 Lock Check-Ins
         </button>
 
+        <!-- Log Resetter Button -->
+        <button id="reset-logs-btn" class="btn btn-reset">
+          🗑️ Reset All Logs
+        </button>
+
         <button id="export-excel-btn" class="btn btn-export">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
             <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
@@ -788,16 +807,22 @@
 
     <!-- TAB 2: REGISTERED STUDENTS DIRECTORY VIEW -->
     <div id="tab-students-view" style="display: none;">
-      <section class="filter-bar">
-        <input type="text" id="filter-student-search" class="search-input" placeholder="Search registered student by name or email...">
-        <select id="filter-student-year" class="select-filter">
-          <option value="ALL">All Year Levels</option>
-          <option value="1st Year">1st Year</option>
-          <option value="2nd Year">2nd Year</option>
-          <option value="3rd Year">3rd Year</option>
-          <option value="4th Year">4th Year</option>
-          <option value="5th Year">5th Year</option>
-        </select>
+      <section class="filter-bar" style="justify-content: space-between; align-items: center;">
+        <div style="display: flex; gap: 14px; flex: 1; flex-wrap: wrap;">
+          <input type="text" id="filter-student-search" class="search-input" placeholder="Search registered student by name or email...">
+          <select id="filter-student-year" class="select-filter">
+            <option value="ALL">All Year Levels</option>
+            <option value="1st Year">1st Year</option>
+            <option value="2nd Year">2nd Year</option>
+            <option value="3rd Year">3rd Year</option>
+            <option value="4th Year">4th Year</option>
+            <option value="5th Year">5th Year</option>
+          </select>
+        </div>
+        <!-- Registered Student Counter Badge -->
+        <div id="student-count-badge" style="font-size: 0.85rem; font-weight: 800; color: var(--brand-purple-dark); background: rgba(99, 102, 241, 0.1); padding: 8px 14px; border-radius: var(--radius-md); border: 1px solid rgba(99, 102, 241, 0.2); white-space: nowrap;">
+          Total Students: 0
+        </div>
       </section>
 
       <section class="table-card">
@@ -852,10 +877,10 @@
 
     <!-- TAB 4: EE WHITELIST VIEW -->
     <div id="tab-whitelist-view" style="display: none;">
-      <section class="filter-bar" style="justify-content: space-between;">
-        <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-secondary);">Whitelist AdDU emails authorized to use the logbook.</div>
-        <div style="display: flex; gap: 10px;">
-          <input type="text" id="whitelist-email-input" class="search-input" placeholder="username@addu.edu.ph" style="min-width: 280px;">
+      <section class="filter-bar" style="justify-content: space-between; align-items: center;">
+        <input type="text" id="filter-whitelist-search" class="search-input" placeholder="Search whitelisted AdDU email...">
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <input type="text" id="whitelist-email-input" class="search-input" placeholder="username@addu.edu.ph" style="min-width: 260px;">
           <button id="btn-add-whitelist" class="btn btn-export">➕ Add Email</button>
         </div>
       </section>
@@ -1069,19 +1094,22 @@
       const tabWhitelistView = document.getElementById('tab-whitelist-view');
       let currentTab = 'logs';
 
-      // Log Filters
+      // Log Filters & Reset Button
       const filterSearch = document.getElementById('filter-search');
       const filterYear = document.getElementById('filter-year');
       const filterStatus = document.getElementById('filter-status');
       const filterPurpose = document.getElementById('filter-purpose');
       const filterDate = document.getElementById('filter-date');
+      const resetLogsBtn = document.getElementById('reset-logs-btn');
       
-      // Directory Filters
+      // Directory Filters & Counter
       const filterStudentSearch = document.getElementById('filter-student-search');
       const filterStudentYear = document.getElementById('filter-student-year');
+      const studentCountBadge = document.getElementById('student-count-badge');
 
       // Whitelist Elements
       const whitelistEmailInput = document.getElementById('whitelist-email-input');
+      const filterWhitelistSearch = document.getElementById('filter-whitelist-search');
       const btnAddWhitelist = document.getElementById('btn-add-whitelist');
       const whitelistTableBody = document.getElementById('whitelist-table-body');
 
@@ -1275,6 +1303,78 @@
         }
       });
 
+      // Log Resetter Listener Implementation
+      if (resetLogsBtn) {
+        resetLogsBtn.addEventListener('click', async () => {
+          const confirmed = await showModal({
+            type: 'confirm',
+            title: 'Purge All Attendance Logs',
+            icon: '⚠️',
+            message: 'Are you sure you want to PERMANENTLY DELETE ALL attendance logs? This action cannot be undone.',
+            confirmText: 'Yes, Delete All',
+            isDanger: true
+          });
+
+          if (!confirmed) return;
+
+          const verifyText = await showModal({
+            type: 'prompt',
+            title: 'Security Verification',
+            icon: '🔒',
+            message: 'Type "RESET" below to confirm purging test logs:',
+            inputPlaceholder: 'RESET',
+            confirmText: 'Purge Logs Now',
+            isDanger: true
+          });
+
+          if (verifyText !== 'RESET') {
+            await showModal({ type: 'alert', title: 'Action Cancelled', icon: 'ℹ️', message: 'Verification text did not match. Log reset aborted.' });
+            return;
+          }
+
+          try {
+            const snapshot = await db.collection('attendance_logs').get();
+            if (snapshot.empty) {
+              await showModal({ type: 'alert', title: 'Notice', icon: 'ℹ️', message: 'There are no attendance logs to clear.' });
+              return;
+            }
+
+            let batch = db.batch();
+            let count = 0;
+            let totalDeleted = 0;
+
+            for (const doc of snapshot.docs) {
+              batch.delete(doc.ref);
+              count++;
+              totalDeleted++;
+              if (count === 500) {
+                await batch.commit();
+                batch = db.batch();
+                count = 0;
+              }
+            }
+
+            if (count > 0) {
+              await batch.commit();
+            }
+
+            await showModal({
+              type: 'alert',
+              title: 'Logs Cleared',
+              icon: '✅',
+              message: `Successfully deleted ${totalDeleted} log record(s). Ready for live launch!`
+            });
+          } catch (err) {
+            await showModal({
+              type: 'alert',
+              title: 'Reset Failed',
+              icon: '❌',
+              message: 'Failed to purge logs: ' + err.message
+            });
+          }
+        });
+      }
+
       function listenToUsers() {
         if (unsubscribeUsers) unsubscribeUsers();
         unsubscribeUsers = db.collection('users').onSnapshot((snapshot) => {
@@ -1396,6 +1496,15 @@
           return matchesSearch && matchesYear;
         });
 
+        // Update Registered Students Counter Display
+        if (studentCountBadge) {
+          if (query || yearVal !== 'ALL') {
+            studentCountBadge.textContent = `Showing: ${filtered.length} of ${rawUsers.length} Students`;
+          } else {
+            studentCountBadge.textContent = `Total Students: ${rawUsers.length}`;
+          }
+        }
+
         filtered.sort((a, b) => {
           const rankA = getYearRank(a.yearLevel);
           const rankB = getYearRank(b.yearLevel);
@@ -1465,7 +1574,18 @@
           return;
         }
 
-        whitelistTableBody.innerHTML = rawWhitelist.map(item => {
+        const query = filterWhitelistSearch ? filterWhitelistSearch.value.trim().toLowerCase() : '';
+        let filtered = rawWhitelist;
+        if (query) {
+          filtered = rawWhitelist.filter(item => item.email && item.email.toLowerCase().includes(query));
+        }
+
+        if (filtered.length === 0) {
+          whitelistTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 30px;">No whitelisted emails matching "${query}".</td></tr>`;
+          return;
+        }
+
+        whitelistTableBody.innerHTML = filtered.map(item => {
           const dateStr = item.addedAt 
             ? (item.addedAt.toDate ? item.addedAt.toDate().toLocaleString() : new Date(item.addedAt).toLocaleString()) 
             : 'Just now';
@@ -1668,6 +1788,10 @@
         el.addEventListener('change', renderStudentsTable);
       });
 
+      if (filterWhitelistSearch) {
+        filterWhitelistSearch.addEventListener('input', renderWhitelistTable);
+      }
+
       // ExcelJS Export Logic
       exportExcelBtn.addEventListener('click', async () => {
         if (typeof ExcelJS === 'undefined') {
@@ -1725,7 +1849,7 @@
               reason: log.checkoutReason || ''
             });
 
-            // Alternate Row Colors (Very light gray vs white)
+            // Alternate Row Colors
             const bgColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF3F4F6'; 
             row.eachCell({ includeEmpty: true }, (cell) => {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
