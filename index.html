@@ -302,10 +302,11 @@
     /* Lab Operating Status Banner */
     .lab-status-banner {
       display: flex;
+      flex-direction: column; /* Updated to explicitly place hours on a new line below */
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      padding: 8px 12px;
+      gap: 4px;
+      padding: 10px 12px;
       border-radius: var(--radius-sm);
       font-size: 0.78rem;
       font-weight: 700;
@@ -962,10 +963,10 @@
       background: #f1f5f9;
     }
 
-    /* Ongoing row styles */
+    /* Updated Ongoing row styles to prominently highlight active classes */
     .ongoing-row {
-      background: #fef2f2 !important;
-      border-left: 3px solid #ef4444 !important;
+      background: rgba(239, 68, 68, 0.1) !important;
+      border-left: 4px solid #ef4444 !important;
     }
 
     .ongoing-badge {
@@ -973,13 +974,14 @@
       font-size: 0.65rem;
       background: #ef4444;
       color: white;
-      padding: 2px 6px;
+      padding: 3px 8px;
       border-radius: 12px;
       margin-left: 8px;
       font-weight: 800;
       letter-spacing: 0.5px;
       vertical-align: middle;
       animation: pulse 2s infinite;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
     }
 
     .time-badge {
@@ -1270,6 +1272,7 @@
       <!-- Real-time Lab Operating Status Banner -->
       <div id="lab-status-banner" class="lab-status-banner lab-status-open">
         <span>🟢 Laboratory is Currently Open</span>
+        <span style="font-size: 0.7rem; font-weight: 600; opacity: 0.9;">(Hours: Loading...)</span>
       </div>
 
       <!-- Schedule Class Lockout Warning Banner -->
@@ -1624,22 +1627,22 @@
         let closeStr = labCloseTime ? formatTime12Hour(labCloseTime) : '';
         let hoursText = (openStr && closeStr) ? `${openStr} - ${closeStr}` : '24/7';
 
-        // Admin / Operating Status Banner
+        // Admin / Operating Status Banner (Updated flex formatting in CSS now correctly stacks these spans)
         if (isManuallyLocked) {
           labStatusBanner.className = 'lab-status-banner lab-status-locked';
-          labStatusBanner.innerHTML = '🔒 Check-Ins Locked by Administrator';
+          labStatusBanner.innerHTML = '<span>🔒 Check-Ins Locked by Administrator</span>';
         } else if (open) {
           labStatusBanner.className = 'lab-status-banner lab-status-open';
-          labStatusBanner.innerHTML = `🟢 Laboratory is Currently Open (${hoursText})`;
+          labStatusBanner.innerHTML = `<span>🟢 Laboratory is Currently Open</span><span style="font-size: 0.7rem; font-weight: 600; opacity: 0.9;">(Hours: ${hoursText})</span>`;
         } else {
           labStatusBanner.className = 'lab-status-banner lab-status-closed';
-          labStatusBanner.innerHTML = `🔴 Laboratory is Currently Closed (Hours: ${hoursText})`;
+          labStatusBanner.innerHTML = `<span>🔴 Laboratory is Currently Closed</span><span style="font-size: 0.7rem; font-weight: 600; opacity: 0.9;">(Hours: ${hoursText})</span>`;
         }
 
         // Warning Banner for Active Class Lockout
         if (scheduleState) {
           classSessionBanner.style.display = 'flex';
-          classSessionMsg.textContent = `⚠️ Check-ins disabled. Class in session: ${scheduleState.courseName || scheduleState.subject}`;
+          classSessionMsg.textContent = `⚠️️ Check-ins disabled. Class in session: ${scheduleState.courseName || scheduleState.subject}`;
         } else {
           classSessionBanner.style.display = 'none';
         }
@@ -2415,7 +2418,7 @@
           // Active row evaluation
           if (item.day && item.day.toLowerCase() === todayDay.toLowerCase()) {
               if (currentTimeStr >= item.startTime && currentTimeStr < item.endTime) {
-                  ongoingHtml = `<span class="ongoing-badge">● ONGOING</span>`;
+                  ongoingHtml = `<span class="ongoing-badge">● CURRENT CLASS</span>`;
                   rowClass = "ongoing-row";
               }
           }
