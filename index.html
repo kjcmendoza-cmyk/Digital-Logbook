@@ -27,7 +27,7 @@
   <style>
     :root {
       --bg-main: #f4f7fb;
-      --card-bg: rgba(230, 237, 253, 0.88); /* Matched to FUSEE logo background #e6edfd */
+      --card-bg: rgba(230, 237, 253, 0.88);
       --card-border: rgba(255, 255, 255, 0.7);
       
       --text-primary: #1e293b;
@@ -112,7 +112,7 @@
       100% { transform: translate(20px, 20px); }
     }
 
-    /* Main Inner Card - Glassmorphism matched to logo color */
+    /* Main Inner Card - Glassmorphism */
     .app-card {
       width: 100%;
       max-width: 440px;
@@ -246,7 +246,6 @@
       color: #cbd5e1;
     }
 
-    /* Input Error Styling */
     .form-group input.input-error,
     .form-group select.input-error {
       border-color: #ef4444 !important;
@@ -300,7 +299,7 @@
       font-size: 0.78rem;
     }
 
-    /* Lab Operating Status Banner */
+    /* Operating Status Banner */
     .lab-status-banner {
       display: flex;
       align-items: center;
@@ -333,7 +332,7 @@
       border: 1px solid rgba(245, 158, 11, 0.25);
     }
 
-    /* Active Class Session Red Warning Banner */
+    /* Active Class Session Warning Banner */
     .class-session-banner {
       display: flex;
       align-items: center;
@@ -352,7 +351,7 @@
       box-shadow: 0 4px 10px rgba(239, 68, 68, 0.08);
     }
 
-    /* Live Lab Occupancy Snapshot Cards */
+    /* Live Occupancy Snapshot Cards */
     .occupancy-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -415,13 +414,20 @@
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       transition: all 0.2s ease;
     }
 
     .btn-schedule-modal:hover {
       background: rgba(99, 102, 241, 0.2);
       transform: translateY(-1px);
+    }
+
+    .svg-icon {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+      vertical-align: middle;
     }
 
     /* Dashboard Profile Section */
@@ -660,6 +666,35 @@
       100% { transform: scale(0.95); opacity: 0.8; }
     }
 
+    /* ONGOING CLASS STYLING */
+    .row-ongoing {
+      background-color: rgba(99, 102, 241, 0.08) !important;
+      border-left: 3px solid var(--brand-purple);
+    }
+
+    .badge-ongoing {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #fff;
+      background: var(--brand-pink);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+      animation: pulse 2s infinite;
+    }
+
+    .tab-active-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background-color: var(--brand-pink);
+      border-radius: 50%;
+      margin-left: 4px;
+      vertical-align: middle;
+      animation: pulse 2s infinite;
+    }
+
     /* Modals Base Styling */
     .modal-overlay {
       position: fixed;
@@ -874,12 +909,12 @@
       margin-bottom: 12px;
       overflow-x: auto;
       padding-bottom: 4px;
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
-    
-    .schedule-tabs::-webkit-scrollbar { 
-      display: none; 
+
+    .schedule-tabs::-webkit-scrollbar {
+      display: none;
     }
 
     .tab-btn {
@@ -998,7 +1033,7 @@
 </head>
 <body>
 
-  <!-- Ambient Lights -->
+  <!-- Ambient Background Glows -->
   <div class="bg-glow blob-1"></div>
   <div class="bg-glow blob-2"></div>
 
@@ -1053,12 +1088,16 @@
   <div id="timetable-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="timetable-modal-title">
     <div class="modal-box modal-box-large">
       <div class="modal-header-flex">
-        <h3 id="timetable-modal-title" class="modal-title">📅 Class Schedule</h3>
+        <h3 id="timetable-modal-title" class="modal-title">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+          Class Schedule
+        </h3>
         <button id="close-timetable-top" class="close-icon-btn" type="button" aria-label="Close Schedule">&times;</button>
       </div>
       <p class="modal-subtext">Computer Laboratory Reserved Hours</p>
 
       <div class="schedule-tabs" id="schedule-tabs">
+        <button class="tab-btn" data-day="Sunday">Sun</button>
         <button class="tab-btn" data-day="Monday">Mon</button>
         <button class="tab-btn" data-day="Tuesday">Tue</button>
         <button class="tab-btn" data-day="Wednesday">Wed</button>
@@ -1067,7 +1106,7 @@
         <button class="tab-btn" data-day="Saturday">Sat</button>
       </div>
 
-      <!-- Table State -->
+      <!-- Table Container -->
       <div class="table-container" id="schedule-table-container">
         <table class="timetable">
           <thead>
@@ -1077,7 +1116,7 @@
             </tr>
           </thead>
           <tbody id="timetable-body">
-            <!-- Dynamically populated by JS -->
+            <!-- Dynamically populated by JavaScript -->
           </tbody>
         </table>
       </div>
@@ -1086,6 +1125,7 @@
     </div>
   </div>
 
+  <!-- Main Application Card -->
   <main class="app-card">
     <header class="app-header">
       <div class="logo-container">
@@ -1231,7 +1271,8 @@
       <!-- Top Action Controls -->
       <div class="dash-top-actions">
         <button type="button" id="open-timetable-btn" class="btn-schedule-modal">
-          <span>📅 Class Schedule</span>
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+          <span>Class Schedule</span>
         </button>
       </div>
 
@@ -1240,12 +1281,12 @@
         <span>🟢 Laboratory is Currently Open</span>
       </div>
 
-      <!-- Schedule Class Lockout Warning Banner (Active when class in session / Sunday) -->
+      <!-- Schedule Class Lockout Warning Banner -->
       <div id="class-session-banner" class="class-session-banner" style="display: none;">
         <span id="class-session-msg">⚠️ Check-ins disabled. Class in session: [Course Name]</span>
       </div>
 
-      <!-- Live Lab Occupancy Real-Time Snapshot Cards -->
+      <!-- Live Lab Occupancy Snapshot Cards -->
       <div class="occupancy-grid">
         <div class="occupancy-card">
           <span class="occupancy-label">💻 PC Workstations</span>
@@ -1306,22 +1347,30 @@
       measurementId: "G-6DEVWDXEC9"
     };
 
-    // Initialize Firebase
+    // Initialize Firebase Compat SDK
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    // Global Constants
+    const DAYS_MAP = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const DEFAULT_OPERATING_HOURS = {
+      weekday: { open: "09:00", close: "21:00" },
+      saturday: { open: "09:00", close: "21:00" },
+      sunday: null // Closed
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
-      // Views
+      // View Elements
       const signupView = document.getElementById('signup-view');
       const loginView = document.getElementById('login-view');
       const resetPassView = document.getElementById('reset-password-view');
       const editProfileView = document.getElementById('edit-profile-view');
       const dashView = document.getElementById('dashboard-view');
       
-      // Forms
+      // Form Elements
       const signupForm = document.getElementById('signup-form');
       const loginForm = document.getElementById('login-form');
       const resetForm = document.getElementById('reset-form');
@@ -1337,12 +1386,12 @@
       const cancelEditProfile = document.getElementById('cancel-edit-profile');
       const logoutBtn = document.getElementById('logout-btn');
 
-      // Dashboard header & profile
+      // Dashboard Header & Profile
       const userGreeting = document.getElementById('user-greeting');
       const userInfo = document.getElementById('user-info');
       const userInitials = document.getElementById('user-initials');
       
-      // Status & Banners
+      // Status Indicators & Banners
       const statusIndicator = document.getElementById('status-indicator');
       const statusText = document.getElementById('status-text');
       const statusTime = document.getElementById('status-time');
@@ -1351,7 +1400,7 @@
       const classSessionBanner = document.getElementById('class-session-banner');
       const classSessionMsg = document.getElementById('class-session-msg');
 
-      // Occupancy elements
+      // Live Occupancy Display
       const pcCountVal = document.getElementById('pc-count-val');
       const tableCountVal = document.getElementById('table-count-val');
       const totalCountVal = document.getElementById('total-count-val');
@@ -1362,7 +1411,7 @@
       const modalMsg = document.getElementById('modal-msg');
       const modalClose = document.getElementById('modal-close');
 
-      // Purpose Selection Modal
+      // Station Selection Modal
       const purposeModal = document.getElementById('purpose-modal');
       const cardPc = document.getElementById('card-pc');
       const cardTable = document.getElementById('card-table');
@@ -1379,11 +1428,11 @@
       const closeTimetableTop = document.getElementById('close-timetable-top');
       const timetableBody = document.getElementById('timetable-body');
       
-      // Tab Logic UI Elements
+      // Timetable Tabs
       const scheduleTabs = document.querySelectorAll('.tab-btn');
       const scheduleTableContainer = document.getElementById('schedule-table-container');
 
-      // Input Form elements
+      // Input Form Elements
       const regNameInput = document.getElementById('reg-name');
       const regEmailInput = document.getElementById('reg-email');
       const regYearSelect = document.getElementById('reg-year');
@@ -1407,7 +1456,7 @@
       const editNameErr = document.getElementById('edit-name-error');
       const editYearErr = document.getElementById('edit-year-error');
 
-      // State tracking
+      // State Management
       let isCheckedIn = false;
       let currentLogId = null;
       let currentUserProfile = null;
@@ -1417,7 +1466,7 @@
       let activeTotalCount = 0;
 
       let isManuallyLocked = false;
-      let activeClassSession = null; // { courseName, day, startTime, endTime }
+      let labOperatingHoursConfig = null;
       let classSchedulesList = [];
       let activeTabDay = "";
 
@@ -1425,14 +1474,14 @@
       let unsubscribeConfigListener = null;
       let unsubscribeOccupancyListener = null;
 
-      // 12-Hour Time Formatter function
+      // 12-Hour Time Formatter
       function formatTime12Hour(timeStr) {
         if (!timeStr) return '';
         let [hours, minutes] = timeStr.split(':');
         hours = parseInt(hours, 10);
         const ampm = hours >= 12 ? 'PM' : 'AM';
         hours = hours % 12 || 12;
-        return `${hours}:${minutes} ${ampm}`;
+        return `${hours}:${minutes.padStart(2, '0')} ${ampm}`;
       }
 
       function showAlert(title, message) {
@@ -1445,7 +1494,7 @@
         modalOverlay.classList.remove('active');
       });
 
-      // Live validation clearing
+      // Clear input validation errors on typing/change
       const setupLiveValidation = (inputEl, errorEl) => {
         if (!inputEl) return;
         const clear = () => {
@@ -1485,20 +1534,24 @@
         [nameErr, emailErr, yearErr, passErr, loginEmailErr, loginPassErr, resetEmailErr, editNameErr, editYearErr].forEach(e => e && (e.style.display = 'none'));
       }
 
-      // Initialize the Default Active Tab based on Current Day
+      // Initialize Active Tab based on Current Day
       function initTabs() {
-        const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        let today = daysMap[new Date().getDay()];
-        
-        // If Sunday (closed), default view to Monday
-        if (today === "Sunday") today = "Monday";
-        
-        activeTabDay = today;
+        activeTabDay = DAYS_MAP[new Date().getDay()];
         updateTabsUI();
       }
 
       function updateTabsUI() {
+        const lockStatus = evaluateLabLockStatus();
+        
         scheduleTabs.forEach(tab => {
+          const baseText = tab.dataset.day.substring(0, 3);
+          tab.innerHTML = baseText;
+
+          // Inject pulsing dot indicator if an ongoing class session falls on this tab's day
+          if (lockStatus && !lockStatus.isSunday && tab.dataset.day.toLowerCase() === DAYS_MAP[new Date().getDay()].toLowerCase()) {
+            tab.innerHTML = `${baseText} <span class="tab-active-dot"></span>`;
+          }
+
           if (tab.dataset.day === activeTabDay) {
             tab.classList.add('active');
             tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -1516,36 +1569,51 @@
         });
       });
 
-      // 1. Operating Hours Check (Mon-Fri 7:30 AM - 9:00 PM | Sat 7:30 AM - 6:00 PM | Sun Closed)
+      // Operating Hours Evaluator (Reads dynamic settings/labConfig or falls back to 09:00–21:00)
       function isLabOpen() {
         const now = new Date();
         const day = now.getDay(); // 0 = Sunday, 1 = Mon, ..., 6 = Sat
-        const minutes = now.getHours() * 60 + now.getMinutes();
+        const currentMins = now.getHours() * 60 + now.getMinutes();
 
-        if (day === 0) return false; // Sunday closed
+        if (day === 0) return false; // Sunday closed by default
 
-        const openTime = 7 * 60 + 30; // 7:30 AM = 450 mins
-        const closeTime = (day === 6) ? (18 * 60) : (21 * 60); // Sat = 6:00 PM (1080 mins), Mon-Fri = 9:00 PM (1260 mins)
+        let openStr = "09:00";
+        let closeStr = "21:00";
 
-        return minutes >= openTime && minutes < closeTime;
+        if (labOperatingHoursConfig) {
+          if (day === 6 && labOperatingHoursConfig.saturday) {
+            openStr = labOperatingHoursConfig.saturday.open || "09:00";
+            closeStr = labOperatingHoursConfig.saturday.close || "21:00";
+          } else if (day >= 1 && day <= 5 && labOperatingHoursConfig.weekday) {
+            openStr = labOperatingHoursConfig.weekday.open || "09:00";
+            closeStr = labOperatingHoursConfig.weekday.close || "21:00";
+          }
+        }
+
+        const [openH, openM] = openStr.split(':').map(Number);
+        const [closeH, closeM] = closeStr.split(':').map(Number);
+
+        const openMins = openH * 60 + openM;
+        const closeMins = closeH * 60 + closeM;
+
+        return currentMins >= openMins && currentMins < closeMins;
       }
 
-      // 2. Schedule Lockout Engine
-      function evaluateActiveSchedule(scheduleArray) {
+      // Schedule Lockout Engine
+      function evaluateLabLockStatus() {
         const now = new Date();
-        const dayIdx = now.getDay(); // 0 = Sunday
+        const dayIdx = now.getDay();
 
         if (dayIdx === 0) {
           return { isSunday: true, courseName: "Sunday Lockdown" };
         }
 
-        const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const todayName = daysMap[dayIdx];
+        const todayName = DAYS_MAP[dayIdx];
         const currentMins = now.getHours() * 60 + now.getMinutes();
 
-        if (!scheduleArray || !Array.isArray(scheduleArray)) return null;
+        if (!classSchedulesList || !Array.isArray(classSchedulesList)) return null;
 
-        for (const item of scheduleArray) {
+        for (const item of classSchedulesList) {
           if (!item.day || !item.startTime || !item.endTime) continue;
 
           if (item.day.toLowerCase() === todayName.toLowerCase()) {
@@ -1568,15 +1636,13 @@
         return null;
       }
 
-      // Refresh Top Banner and Class Session Warning State
+      // Refresh Banners UI
       function refreshLabBannerStatus() {
         if (!labStatusBanner) return;
 
         const open = isLabOpen();
-        const scheduleState = evaluateActiveSchedule(classSchedulesList);
-        activeClassSession = scheduleState;
+        const scheduleState = evaluateLabLockStatus();
 
-        // Banner 1: Admin / Operating Hours Banner
         if (isManuallyLocked) {
           labStatusBanner.className = 'lab-status-banner lab-status-locked';
           labStatusBanner.innerHTML = '🔒 Check-Ins Locked by Administrator';
@@ -1588,7 +1654,6 @@
           labStatusBanner.innerHTML = '🔴 Laboratory is Currently Closed';
         }
 
-        // Banner 2: Class Session / Sunday Warning Banner
         if (scheduleState) {
           classSessionBanner.style.display = 'flex';
           if (scheduleState.isSunday) {
@@ -1603,7 +1668,7 @@
         updateStatusUI();
       }
 
-      // 3. Cooldown Helper (1 Minute / 60 Seconds)
+      // Cooldown Helper (60 seconds between actions)
       function getRemainingCooldownSeconds() {
         const lastAction = localStorage.getItem('last_lab_action');
         if (!lastAction) return 0;
@@ -1611,7 +1676,7 @@
         return elapsed < 60 ? Math.ceil(60 - elapsed) : 0;
       }
 
-      // View Navigation Event Listeners
+      // Navigation Actions
       goToLogin.addEventListener('click', () => {
         clearErrors();
         hideAllViews();
@@ -1725,7 +1790,7 @@
         }
       });
 
-      // Real-time Listener for Lab Config & Class Schedules
+      // Real-time Listener for settings/labConfig with Dynamic Fallback (09:00 - 21:00)
       function listenToLabConfig() {
         if (unsubscribeConfigListener) unsubscribeConfigListener();
 
@@ -1735,23 +1800,27 @@
               const data = doc.data();
               isManuallyLocked = data.manualLock === true;
               classSchedulesList = Array.isArray(data.schedules) ? data.schedules : [];
+              labOperatingHoursConfig = data.operatingHours || DEFAULT_OPERATING_HOURS;
             } else {
               isManuallyLocked = false;
               classSchedulesList = [];
+              labOperatingHoursConfig = DEFAULT_OPERATING_HOURS;
             }
             refreshLabBannerStatus();
             
-            // Re-render if timetable modal is currently open
             if (timetableModal.classList.contains('active')) {
               renderTimetable(classSchedulesList);
             }
           }, (err) => {
-            console.warn("Error subscribing to lab config:", err);
+            console.warn("Error subscribing to lab config (using 09:00-21:00 fallback):", err);
+            isManuallyLocked = false;
+            classSchedulesList = [];
+            labOperatingHoursConfig = DEFAULT_OPERATING_HOURS;
             refreshLabBannerStatus();
           });
       }
 
-      // Real-time Listener for Live Lab Occupancy (Active Check-Ins)
+      // Real-time Listener for Live Occupancy
       function listenToOccupancySnapshots() {
         if (unsubscribeOccupancyListener) unsubscribeOccupancyListener();
 
@@ -1774,7 +1843,6 @@
             activeTableCount = table;
             activeTotalCount = pc + table;
 
-            // Update Snapshot Cards UI
             pcCountVal.textContent = `${activePcCount} / 10`;
             if (activePcCount >= 10) pcCountVal.classList.add('full');
             else pcCountVal.classList.remove('full');
@@ -1785,7 +1853,6 @@
 
             totalCountVal.textContent = `${activeTotalCount} / 24`;
 
-            // Update modal state if open
             syncPurposeModalState();
 
           }, (err) => {
@@ -1793,6 +1860,52 @@
           });
       }
 
+      // Just-In-Time (JIT) Lazy Auto-Checkout Evaluator
+      async function evaluateLazyAutoCheckout(logDoc) {
+        if (!logDoc || !logDoc.exists) return false;
+        
+        const logData = logDoc.data();
+        if (logData.status !== 'IN') return false;
+
+        const now = new Date();
+        const todayISO = now.toISOString().slice(0, 10);
+        const logDate = logData.date;
+
+        let shouldAutoCheckout = false;
+        let checkoutReason = "Operating Hours Ended";
+
+        // Condition 1: Check-in was from a previous calendar day
+        if (logDate && logDate < todayISO) {
+          shouldAutoCheckout = true;
+          checkoutReason = "Previous Day Session Expiry";
+        } 
+        // Condition 2: Lab is currently closed according to schedule
+        else if (!isLabOpen()) {
+          shouldAutoCheckout = true;
+          checkoutReason = "Laboratory Closing Time";
+        }
+
+        if (shouldAutoCheckout) {
+          try {
+            const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            await db.collection('attendance_logs').doc(logDoc.id).update({
+              checkOutTime: `${timeString} (Auto Checkout)`,
+              status: 'OUT',
+              autoCheckedOut: true,
+              autoCheckoutReason: checkoutReason,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            showAlert("Automatic Check-Out", `You were automatically checked out because the laboratory closed (${checkoutReason}).`);
+            return true;
+          } catch (err) {
+            console.error("JIT Auto-Checkout failed:", err);
+          }
+        }
+        return false;
+      }
+
+      // Real-time Attendance Status Listener with JIT Lazy Auto-Checkout Trigger
       function listenToAttendanceStatus(uid) {
         if (unsubscribeLogListener) unsubscribeLogListener();
 
@@ -1800,9 +1913,20 @@
           .where('userId', '==', uid)
           .where('status', '==', 'IN')
           .limit(1)
-          .onSnapshot((snapshot) => {
+          .onSnapshot(async (snapshot) => {
             if (!snapshot.empty) {
               const doc = snapshot.docs[0];
+              
+              // Perform Just-In-Time Lazy Auto-Checkout Check
+              const wasAutoCheckedOut = await evaluateLazyAutoCheckout(doc);
+              if (wasAutoCheckedOut) {
+                isCheckedIn = false;
+                currentLogId = null;
+                if (statusTime) statusTime.textContent = 'Tap below when entering or leaving';
+                updateStatusUI();
+                return;
+              }
+
               const logData = doc.data();
               currentLogId = doc.id;
               isCheckedIn = true;
@@ -2051,7 +2175,7 @@
         refreshLabBannerStatus();
       }
 
-      // Purpose Card Radio Sync
+      // Purpose Selection Radio Sync
       [radioPc, radioTable].forEach(radio => {
         radio.addEventListener('change', () => {
           if (radioPc.checked) {
@@ -2093,10 +2217,21 @@
 
       cancelPurposeBtn.addEventListener('click', closePurposeModal);
 
-      // Confirm Check-In Action with Firestore Atomic Transaction & Query
+      // Confirm Check-In Action with Firestore Atomic Transaction & Capacity Guard
       confirmPurposeBtn.addEventListener('click', async () => {
         const user = auth.currentUser;
         if (!user || !currentUserProfile) return;
+
+        const lockStatus = evaluateLabLockStatus();
+        if (lockStatus && !isCheckedIn) {
+          if (lockStatus.isSunday) {
+            showAlert("Sunday Lockdown", "The EE Computer Laboratory is closed on Sundays.");
+          } else {
+            showAlert("Class Session Active", `Check-in blocked. A class is currently in session: ${lockStatus.courseName}`);
+          }
+          closePurposeModal();
+          return;
+        }
 
         const selectedPurpose = (radioPc.checked && !radioPc.disabled) ? 'PC' : 'Table';
         closePurposeModal();
@@ -2109,7 +2244,6 @@
         const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
         try {
-          // Atomic Firestore Transaction with capacity check inside the transaction block
           await db.runTransaction(async (transaction) => {
             if (selectedPurpose === 'PC') {
               const activePcSnap = await db.collection('attendance_logs')
@@ -2118,7 +2252,7 @@
                 .get();
 
               if (activePcSnap.size >= 10) {
-                throw new Error("PC Workstations just reached full capacity (10/10). Please select Study Table instead.");
+                throw new Error("PC Workstations reached full capacity (10/10). Please select Study Table area.");
               }
             }
 
@@ -2147,19 +2281,19 @@
         }
       });
 
-      // Main Action Button (Check-In or Check-Out trigger)
+      // Main Action Button (Check-In / Check-Out Trigger)
       actionBtn.addEventListener('click', async () => {
         const user = auth.currentUser;
         if (!user || !currentUserProfile) return;
 
-        // 1. Check Cooldown
+        // Cooldown Guard
         const remainingSeconds = getRemainingCooldownSeconds();
         if (remainingSeconds > 0) {
           showAlert("Cooldown Active", `Please wait ${remainingSeconds} second(s) before performing another action.`);
           return;
         }
 
-        // If checking out: perform directly
+        // If currently checked in -> Check Out
         if (isCheckedIn) {
           actionBtn.disabled = true;
           actionBtn.textContent = 'Checking Out...';
@@ -2186,7 +2320,7 @@
           return;
         }
 
-        // If checking in: verify locks (Admin, Schedule, Operating Hours)
+        // If checking in -> Verify Lab Status
         const labOpen = isLabOpen();
 
         if (isManuallyLocked) {
@@ -2194,25 +2328,25 @@
           return;
         }
 
-        if (activeClassSession) {
-          if (activeClassSession.isSunday) {
+        const lockStatus = evaluateLabLockStatus();
+        if (lockStatus) {
+          if (lockStatus.isSunday) {
             showAlert("Sunday Lockdown", "The EE Computer Laboratory is closed on Sundays.");
           } else {
-            showAlert("Class Session Active", `Check-ins are disabled during active class sessions.\n\nActive Class: ${activeClassSession.courseName}`);
+            showAlert("Class Session Active", `Check-ins are disabled during active class sessions.\n\nActive Class: ${lockStatus.courseName}`);
           }
           return;
         }
 
         if (!labOpen) {
-          showAlert("Laboratory Closed", "The laboratory is currently closed. Check-ins are disabled.\n\nOperating Hours:\nMon-Fri: 7:30 AM - 9:00 PM\nSaturday: 7:30 AM - 6:00 PM\nSunday: Closed");
+          showAlert("Laboratory Closed", "The laboratory is currently closed. Check-ins are disabled.\n\nOperating Hours:\nMonday–Saturday: 9:00 AM – 9:00 PM\nSunday: Closed");
           return;
         }
 
-        // All clear -> open Purpose Modal
         openPurposeModal();
       });
 
-      // Update Action Button State and Labels based on Lockouts
+      // Update UI Status and Button State
       function updateStatusUI() {
         actionBtn.disabled = false;
 
@@ -2229,7 +2363,9 @@
           actionBtn.className = 'btn btn-checkin';
 
           const open = isLabOpen();
-          if (isManuallyLocked || activeClassSession || !open) {
+          const lockStatus = evaluateLabLockStatus();
+          
+          if (isManuallyLocked || lockStatus || !open) {
             actionBtn.disabled = true;
           } else {
             actionBtn.disabled = false;
@@ -2237,30 +2373,31 @@
         }
       }
 
-      // Weekly Timetable Logic via Tabbed UI (Sorted Chronologically)
+      // Weekly Timetable Renderer
       function renderTimetable(schedules) {
         timetableBody.innerHTML = '';
         
-        // Filter based on currently active tab day
         const filteredSchedules = (schedules || []).filter(item => 
           item.day && item.day.toLowerCase() === activeTabDay.toLowerCase()
         );
 
-        // Empty state check with single empty-state row
         if (!filteredSchedules || filteredSchedules.length === 0) {
           scheduleTableContainer.style.display = 'block';
-          timetableBody.innerHTML = `<tr><td colspan="2" style="text-align: center; padding: 20px; color: var(--text-secondary);">No class sessions scheduled</td></tr>`;
+          timetableBody.innerHTML = `<tr><td colspan="2" style="text-align: center; padding: 20px; color: var(--text-secondary);">No class sessions scheduled for ${activeTabDay}</td></tr>`;
           return;
         }
 
         scheduleTableContainer.style.display = 'block';
 
-        const daysMap = { "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4, "friday": 5, "saturday": 6, "sunday": 7 };
+        const daysMapChron = { "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4, "friday": 5, "saturday": 6, "sunday": 7 };
+        
+        const now = new Date();
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+        const todayName = DAYS_MAP[now.getDay()];
 
-        // Sort chronologically by day and start time
         const sortedSchedules = [...filteredSchedules].sort((a, b) => {
-          const dayA = daysMap[(a.day || "").toLowerCase()] || 0;
-          const dayB = daysMap[(b.day || "").toLowerCase()] || 0;
+          const dayA = daysMapChron[(a.day || "").toLowerCase()] || 0;
+          const dayB = daysMapChron[(b.day || "").toLowerCase()] || 0;
           if (dayA !== dayB) return dayA - dayB;
 
           const timeA = a.startTime || '00:00';
@@ -2268,15 +2405,31 @@
           return timeA.localeCompare(timeB);
         });
 
-        // Render schedule lists to the table using 12-hour format function
         sortedSchedules.forEach(item => {
           const tr = document.createElement('tr');
           const start12 = formatTime12Hour(item.startTime);
           const end12 = formatTime12Hour(item.endTime);
           const timeStr = `${start12} - ${end12}`;
+          
+          let isOngoing = false;
+          if (item.day && item.day.toLowerCase() === todayName.toLowerCase()) {
+            const [startH, startM] = (item.startTime || "00:00").split(':').map(Number);
+            const [endH, endM] = (item.endTime || "00:00").split(':').map(Number);
+            const startTotal = startH * 60 + startM;
+            const endTotal = endH * 60 + endM;
+            
+            if (currentMins >= startTotal && currentMins < endTotal) {
+              isOngoing = true;
+            }
+          }
+
+          if (isOngoing) {
+            tr.classList.add('row-ongoing');
+          }
+
           tr.innerHTML = `
             <td class="time-badge">${timeStr}</td>
-            <td class="course-badge">${item.courseName || item.subject || 'Class Session'}</td>
+            <td class="course-badge">${item.courseName || item.subject || 'Class Session'} ${isOngoing ? '<span class="badge-ongoing">ONGOING</span>' : ''}</td>
           `;
           timetableBody.appendChild(tr);
         });
