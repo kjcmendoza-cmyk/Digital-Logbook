@@ -32,6 +32,7 @@
       --brand-purple: #6366f1;
       --brand-purple-dark: #4f46e5;
       --brand-pink: #ec4899;
+      --brand-amber: #f59e0b;
       
       --status-in: #10b981;
       --status-out: #ef4444;
@@ -57,7 +58,7 @@
     }
 
     .admin-container {
-      max-width: 1100px;
+      max-width: 1200px;
       margin: 0 auto;
     }
 
@@ -224,7 +225,7 @@
       align-items: center;
     }
 
-    .search-input, .select-filter, .date-filter {
+    .search-input, .select-filter, .date-filter, .time-filter {
       padding: 10px 14px;
       border: 1px solid rgba(148, 163, 184, 0.3);
       border-radius: var(--radius-md);
@@ -240,7 +241,7 @@
       min-width: 220px;
     }
 
-    .search-input:focus, .select-filter:focus, .date-filter:focus {
+    .search-input:focus, .select-filter:focus, .date-filter:focus, .time-filter:focus {
       border-color: var(--brand-purple);
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
     }
@@ -291,7 +292,7 @@
       background-color: rgba(235, 243, 254, 0.4);
     }
 
-    /* Action Buttons in Directory Table */
+    /* Action Buttons */
     .action-btn-group {
       display: flex;
       align-items: center;
@@ -314,7 +315,7 @@
       color: #ffffff;
     }
 
-    .btn-action-kick {
+    .btn-action-danger {
       padding: 6px 12px;
       font-size: 0.78rem;
       background: rgba(239, 68, 68, 0.1);
@@ -325,7 +326,7 @@
       font-weight: 700;
       transition: all 0.2s ease;
     }
-    .btn-action-kick:hover {
+    .btn-action-danger:hover {
       background: #ef4444;
       color: #ffffff;
     }
@@ -352,6 +353,18 @@
       background: rgba(148, 163, 184, 0.15);
       color: var(--text-secondary);
       border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    .badge-pc {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--brand-purple-dark);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .badge-table {
+      background: rgba(245, 158, 11, 0.1);
+      color: #d97706;
+      border: 1px solid rgba(245, 158, 11, 0.2);
     }
 
     .status-dot-sm {
@@ -526,7 +539,6 @@
     .btn-modal-danger:hover {
       background: #dc2626;
     }
-
   </style>
 </head>
 <body>
@@ -577,6 +589,46 @@
     </div>
   </div>
 
+  <!-- Dedicated Modal for Class Schedules -->
+  <div id="schedule-modal-root" class="custom-modal-overlay">
+    <div class="custom-modal" style="max-width: 460px; text-align: left;">
+      <div class="custom-modal-title" style="margin-bottom: 16px; font-size: 1.2rem;">📅 Schedule Manager</div>
+      <form id="schedule-form">
+        <input type="hidden" id="schedule-id">
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">COURSE NAME & ROOM</label>
+          <input type="text" id="schedule-course" class="search-input" style="width: 100%;" placeholder="e.g. EE 315 - Rm 204" required>
+        </div>
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">DAY OF WEEK</label>
+          <select id="schedule-day" class="select-filter" style="width: 100%;" required>
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+            <option value="Saturday">Saturday</option>
+            <option value="Sunday">Sunday</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 14px; margin-bottom: 24px;">
+          <div style="flex: 1;">
+            <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">START TIME</label>
+            <input type="time" id="schedule-start" class="time-filter" style="width: 100%;" required>
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">END TIME</label>
+            <input type="time" id="schedule-end" class="time-filter" style="width: 100%;" required>
+          </div>
+        </div>
+        <div class="custom-modal-actions" style="justify-content: flex-end;">
+          <button type="button" id="schedule-cancel" class="btn btn-modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-modal-confirm">Save Schedule</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- AUTHENTICATION SCREEN FOR ADMIN -->
   <div id="admin-login-screen" class="auth-gate">
     <h2>Admin Portal Access</h2>
@@ -593,7 +645,7 @@
   <div id="admin-dashboard-screen" class="admin-container" style="display: none;">
     <header class="admin-header">
       <div class="brand-section">
-        <img src="fusee-logo.png" alt="FUSEE Logo" class="admin-logo">
+        <img src="fusee-logo.png" alt="FUSEE Logo" class="admin-logo" onerror="this.style.display='none'">
         <div class="brand-titles">
           <h1>EE Lab Logbook Admin</h1>
           <p>Real-time Attendance & Student Telemetry Monitor</p>
@@ -603,11 +655,6 @@
         <!-- Manual Lock Toggle Button -->
         <button id="toggle-lock-btn" class="btn" style="background: #f59e0b; color: #fff;">
           🔒 Lock Check-Ins
-        </button>
-
-        <!-- Reset Data Button -->
-        <button id="reset-data-btn" class="btn" style="background: #ef4444; color: #fff;">
-          🗑️ Reset Data
         </button>
 
         <button id="export-csv-btn" class="btn btn-export">
@@ -624,16 +671,16 @@
     <!-- METRICS OVERVIEW -->
     <section class="metrics-grid">
       <div class="metric-card">
-        <div class="metric-label">Currently in Lab</div>
-        <div id="metric-current-in" class="metric-value">0</div>
+        <div class="metric-label">Active PCs</div>
+        <div id="metric-active-pcs" class="metric-value">0 / 10</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Total Logs Today</div>
-        <div id="metric-today-total" class="metric-value">0</div>
+        <div class="metric-label">Active Tables</div>
+        <div id="metric-active-tables" class="metric-value">0 / 14</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Registered Students</div>
-        <div id="metric-total-users" class="metric-value">0</div>
+        <div class="metric-label">Total Active</div>
+        <div id="metric-total-active" class="metric-value">0 / 24</div>
       </div>
     </section>
 
@@ -641,6 +688,7 @@
     <nav class="tabs-container">
       <button id="tab-btn-logs" class="nav-tab-btn active">📋 Attendance Logs</button>
       <button id="tab-btn-students" class="nav-tab-btn">🎓 Registered Students Directory</button>
+      <button id="tab-btn-schedule" class="nav-tab-btn">📅 Schedule Manager</button>
     </nav>
 
     <!-- TAB 1: ATTENDANCE LOGS VIEW -->
@@ -664,6 +712,12 @@
           <option value="OUT">Checked OUT</option>
         </select>
 
+        <select id="filter-purpose" class="select-filter">
+          <option value="ALL">All Purposes</option>
+          <option value="PC">PC Only</option>
+          <option value="Table">Table Only</option>
+        </select>
+
         <input type="date" id="filter-date" class="date-filter">
       </section>
 
@@ -677,6 +731,7 @@
                 <th>Student Name</th>
                 <th>AdDU Email</th>
                 <th>Year Level</th>
+                <th>Purpose</th>
                 <th>Check In</th>
                 <th>Check Out</th>
                 <th>Status</th>
@@ -684,7 +739,7 @@
             </thead>
             <tbody id="logs-table-body">
               <tr>
-                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading live records...</td>
+                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading live records...</td>
               </tr>
             </tbody>
           </table>
@@ -694,10 +749,8 @@
 
     <!-- TAB 2: REGISTERED STUDENTS DIRECTORY VIEW -->
     <div id="tab-students-view" style="display: none;">
-      <!-- SEARCH & FILTERS FOR STUDENTS -->
       <section class="filter-bar">
         <input type="text" id="filter-student-search" class="search-input" placeholder="Search registered student by name or email...">
-        
         <select id="filter-student-year" class="select-filter">
           <option value="ALL">All Year Levels</option>
           <option value="1st Year">1st Year</option>
@@ -708,7 +761,6 @@
         </select>
       </section>
 
-      <!-- STUDENTS DIRECTORY TABLE -->
       <section class="table-card">
         <div class="table-wrapper">
           <table>
@@ -723,6 +775,35 @@
             <tbody id="students-table-body">
               <tr>
                 <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading registered students...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 3: SCHEDULE MANAGER VIEW -->
+    <div id="tab-schedule-view" style="display: none;">
+      <section class="filter-bar" style="justify-content: space-between;">
+        <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-secondary);">Manage weekly recurring classes to trigger auto-sweeps.</div>
+        <button id="btn-add-schedule" class="btn btn-export">➕ Add Class Schedule</button>
+      </section>
+
+      <section class="table-card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Day of Week</th>
+                <th>Course / Room</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th style="text-align: right; padding-right: 28px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="schedules-table-body">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading schedules...</td>
               </tr>
             </tbody>
           </table>
@@ -768,11 +849,9 @@
         confirmBtn.textContent = confirmText;
         cancelBtn.textContent = cancelText;
 
-        // Reset Button Styles
         confirmBtn.className = 'btn btn-modal-confirm';
         if (isDanger) confirmBtn.classList.add('btn-modal-danger');
 
-        // Configure Layout by Type
         if (type === 'alert') {
           cancelBtn.style.display = 'none';
           inputEl.style.display = 'none';
@@ -811,7 +890,6 @@
       });
     }
 
-    // Helper functions for Registered Student Directory sorting
     function getLastName(fullName) {
       if (!fullName) return '';
       const parts = fullName.trim().split(/\s+/);
@@ -820,13 +898,7 @@
 
     function getYearRank(yearLevel) {
       if (!yearLevel) return 99;
-      const yearMap = {
-        '1st year': 1,
-        '2nd year': 2,
-        '3rd year': 3,
-        '4th year': 4,
-        '5th year': 5
-      };
+      const yearMap = { '1st year': 1, '2nd year': 2, '3rd year': 3, '4th year': 4, '5th year': 5 };
       const key = yearLevel.trim().toLowerCase();
       if (yearMap[key] !== undefined) return yearMap[key];
       const match = yearLevel.match(/\d+/);
@@ -843,14 +915,17 @@
       // Tab Elements
       const tabBtnLogs = document.getElementById('tab-btn-logs');
       const tabBtnStudents = document.getElementById('tab-btn-students');
+      const tabBtnSchedule = document.getElementById('tab-btn-schedule');
       const tabLogsView = document.getElementById('tab-logs-view');
       const tabStudentsView = document.getElementById('tab-students-view');
+      const tabScheduleView = document.getElementById('tab-schedule-view');
       let currentTab = 'logs';
 
       // Log Filters
       const filterSearch = document.getElementById('filter-search');
       const filterYear = document.getElementById('filter-year');
       const filterStatus = document.getElementById('filter-status');
+      const filterPurpose = document.getElementById('filter-purpose');
       const filterDate = document.getElementById('filter-date');
       
       // Directory Filters
@@ -860,37 +935,48 @@
       const exportCsvBtn = document.getElementById('export-csv-btn');
       const logsTableBody = document.getElementById('logs-table-body');
       const studentsTableBody = document.getElementById('students-table-body');
+      const schedulesTableBody = document.getElementById('schedules-table-body');
 
-      const metricCurrentIn = document.getElementById('metric-current-in');
-      const metricTodayTotal = document.getElementById('metric-today-total');
-      const metricTotalUsers = document.getElementById('metric-total-users');
+      const metricActivePcs = document.getElementById('metric-active-pcs');
+      const metricActiveTables = document.getElementById('metric-active-tables');
+      const metricTotalActive = document.getElementById('metric-total-active');
 
-      const resetDataBtn = document.getElementById('reset-data-btn');
       const toggleLockBtn = document.getElementById('toggle-lock-btn');
       let isLocked = false;
 
       let rawLogs = [];
       let rawUsers = [];
-      let usersMap = {}; // Live lookup map for student profiles
+      let globalSchedules = [];
+      let usersMap = {}; 
       let unsubscribeLogs = null;
       let unsubscribeUsers = null;
+      let unsubscribeConfig = null;
 
       // Handle Tab Switch Actions
-      tabBtnLogs.addEventListener('click', () => {
-        currentTab = 'logs';
-        tabBtnLogs.classList.add('active');
-        tabBtnStudents.classList.remove('active');
-        tabLogsView.style.display = 'block';
-        tabStudentsView.style.display = 'none';
-      });
-
-      tabBtnStudents.addEventListener('click', () => {
-        currentTab = 'students';
-        tabBtnStudents.classList.add('active');
+      function switchTab(tab) {
+        currentTab = tab;
         tabBtnLogs.classList.remove('active');
-        tabStudentsView.style.display = 'block';
+        tabBtnStudents.classList.remove('active');
+        tabBtnSchedule.classList.remove('active');
         tabLogsView.style.display = 'none';
-      });
+        tabStudentsView.style.display = 'none';
+        tabScheduleView.style.display = 'none';
+
+        if (tab === 'logs') {
+          tabBtnLogs.classList.add('active');
+          tabLogsView.style.display = 'block';
+        } else if (tab === 'students') {
+          tabBtnStudents.classList.add('active');
+          tabStudentsView.style.display = 'block';
+        } else if (tab === 'schedule') {
+          tabBtnSchedule.classList.add('active');
+          tabScheduleView.style.display = 'block';
+        }
+      }
+
+      tabBtnLogs.addEventListener('click', () => switchTab('logs'));
+      tabBtnStudents.addEventListener('click', () => switchTab('students'));
+      tabBtnSchedule.addEventListener('click', () => switchTab('schedule'));
 
       // Handle Authentication Observer
       auth.onAuthStateChanged((user) => {
@@ -903,17 +989,15 @@
           dashboardScreen.style.display = 'none';
           if (unsubscribeLogs) unsubscribeLogs();
           if (unsubscribeUsers) unsubscribeUsers();
+          if (unsubscribeConfig) unsubscribeConfig();
         }
       });
 
-      // Handle Login Form
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         loginErr.style.display = 'none';
-        
         const email = document.getElementById('admin-email').value.trim();
         const password = document.getElementById('admin-pass').value;
-
         try {
           await auth.signInWithEmailAndPassword(email, password);
           loginForm.reset();
@@ -922,212 +1006,164 @@
         }
       });
 
-      // Handle Logout
       logoutBtn.addEventListener('click', () => auth.signOut());
 
-      // Initialize Admin Data Subscriptions
       function initDashboard() {
+        listenToConfig();
         listenToUsers(); 
         listenToLogs();
-        checkLockStatus();
-      }
-
-      // Initialize Admin Lock Switch State
-      async function checkLockStatus() {
-        try {
-          const doc = await db.collection('settings').doc('labConfig').get();
-          if (doc.exists && doc.data().manualLock) {
-            isLocked = true;
-            toggleLockBtn.textContent = '🔓 Unlock Check-Ins';
-          } else {
-            isLocked = false;
-            toggleLockBtn.textContent = '🔒 Lock Check-Ins';
+        
+        // Execute background sweep evaluation every 60 seconds to catch precise class start times
+        setInterval(() => {
+          if (rawLogs && rawLogs.length > 0) {
+            runAutoCheckoutSweep(rawLogs);
           }
-        } catch (err) {
-          console.error("Error reading lock status:", err);
-        }
+        }, 60000); 
       }
 
-      // Manual Check-In Lock Toggle Handler
+      // Initialize Settings, Locks & Schedules
+      function listenToConfig() {
+        if (unsubscribeConfig) unsubscribeConfig();
+        unsubscribeConfig = db.collection('settings').doc('labConfig').onSnapshot(doc => {
+          if (doc.exists) {
+            const data = doc.data();
+            isLocked = !!data.manualLock;
+            toggleLockBtn.textContent = isLocked ? '🔓 Unlock Check-Ins' : '🔒 Lock Check-Ins';
+            globalSchedules = data.schedules || [];
+            renderSchedulesTable();
+          } else {
+            globalSchedules = [];
+            renderSchedulesTable();
+          }
+        });
+      }
+
       toggleLockBtn.addEventListener('click', async () => {
         isLocked = !isLocked;
         try {
           await db.collection('settings').doc('labConfig').set({ manualLock: isLocked }, { merge: true });
-          toggleLockBtn.textContent = isLocked ? '🔓 Unlock Check-Ins' : '🔒 Lock Check-Ins';
-          
           await showModal({ 
             type: 'alert', 
             title: isLocked ? 'Check-ins Locked' : 'Check-ins Unlocked',
             icon: isLocked ? '🔒' : '🔓',
             message: isLocked ? "Check-ins are now LOCKED for all students." : "Check-ins are now UNLOCKED." 
           });
-
         } catch (err) {
           await showModal({ type: 'alert', title: 'Error', icon: '❌', message: "Failed to update lock status: " + err.message });
         }
       });
 
-      // Admin Data Reset Handler
-      resetDataBtn.addEventListener('click', async () => {
-        const password = await showModal({ 
-          type: 'prompt', 
-          title: 'Authentication Required',
-          icon: '🛡️',
-          message: "Enter Admin Password to Reset Data:",
-        });
-
-        if (password === null) return; 
-
-        if (password !== "Houselannister") {
-          await showModal({ type: 'alert', title: 'Access Denied', icon: '🚫', message: "Incorrect password. Access denied." });
-          return;
-        }
-
-        const confirmReset = await showModal({
-          type: 'confirm',
-          title: 'Confirm Deletion',
-          icon: '⚠️',
-          message: "WARNING: Are you sure you want to delete ALL attendance logs? This action cannot be undone.",
-          confirmText: 'Delete All',
-          isDanger: true
-        });
-
-        if (!confirmReset) return;
-
-        resetDataBtn.disabled = true;
-        resetDataBtn.textContent = "Clearing Logs...";
-
-        try {
-          const snapshot = await db.collection('attendance_logs').get();
-          const batch = db.batch();
-
-          snapshot.docs.forEach(doc => {
-            batch.delete(doc.ref);
-          });
-
-          await batch.commit();
-          await showModal({ type: 'alert', title: 'Success', icon: '✅', message: "All attendance log records have been successfully reset!" });
-        } catch (err) {
-          console.error("Error resetting data:", err);
-          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: "Failed to reset logs: " + err.message });
-        } finally {
-          resetDataBtn.disabled = false;
-          resetDataBtn.textContent = "🗑️ Reset Data";
-        }
-      });
-
-      // Fetch Live User Profiles & Synchronize Directory
       function listenToUsers() {
         if (unsubscribeUsers) unsubscribeUsers();
-
         unsubscribeUsers = db.collection('users').onSnapshot((snapshot) => {
           rawUsers = [];
           usersMap = {};
-
           snapshot.docs.forEach(doc => {
             const data = doc.data();
-            const userData = { id: doc.id, ...data };
-            rawUsers.push(userData);
-
+            rawUsers.push({ id: doc.id, ...data });
             if (data.email) {
-              usersMap[data.email.toLowerCase()] = {
-                fullName: data.fullName,
-                yearLevel: data.yearLevel
-              };
+              usersMap[data.email.toLowerCase()] = { fullName: data.fullName, yearLevel: data.yearLevel };
             }
           });
-
-          metricTotalUsers.textContent = rawUsers.length;
           renderStudentsTable();
           if (rawLogs.length > 0) renderLogsTable();
-        }, (err) => {
-          console.error("Error listening to users:", err);
         });
       }
 
-      // Automated Log Sweep Routine for 9:00 PM Auto Check-Out
+      function listenToLogs() {
+        if (unsubscribeLogs) unsubscribeLogs();
+        unsubscribeLogs = db.collection('attendance_logs')
+          .orderBy('createdAt', 'desc')
+          .limit(500)
+          .onSnapshot((snapshot) => {
+            rawLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            runAutoCheckoutSweep(rawLogs);
+            updateMetrics(rawLogs);
+            renderLogsTable();
+          });
+      }
+
+      // Automated Log Sweep Routine based on new criteria
       async function runAutoCheckoutSweep(logs) {
         const now = new Date();
         const todayISO = now.toISOString().slice(0, 10);
-        const currentHour = now.getHours(); // 0 - 23
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const dayOfWeek = now.getDay(); 
+        const currentHHMM = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+        
+        let isSweepTrigger = false;
+        
+        // Base criteria for Evening Sweeps
+        if (dayOfWeek >= 1 && dayOfWeek <= 5 && currentHour >= 21) {
+            isSweepTrigger = true; // Mon-Fri 9:00 PM
+        }
+        if (dayOfWeek === 6 && (currentHour > 18 || (currentHour === 18 && currentMinute >= 30))) {
+            isSweepTrigger = true; // Sat 6:30 PM
+        }
+        
+        // Exact class start time trigger
+        const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const todayName = daysMap[dayOfWeek];
+        if (globalSchedules) {
+            const todayClasses = globalSchedules.filter(s => s.day === todayName);
+            for (let c of todayClasses) {
+                if (currentHHMM === c.startTime) {
+                    isSweepTrigger = true;
+                    break;
+                }
+            }
+        }
 
-        // Identify unclosed logs (status == 'IN') that need to be automatically checked out
         const pendingSweepLogs = logs.filter(log => {
           if (log.status !== 'IN') return false;
-
-          // Case A: Log is from a past date and student never checked out
+          // Case A: Past Date unclosed logs
           if (log.date && log.date < todayISO) return true;
-
-          // Case B: Log is from today, but the time is currently 9:00 PM (21:00) or later
-          if (log.date === todayISO && currentHour >= 21) return true;
-
+          // Case B: Trigger condition met for today
+          if (log.date === todayISO && isSweepTrigger) return true;
           return false;
         });
 
         if (pendingSweepLogs.length === 0) return;
-
-        console.log(`Auto-checkout sweep found ${pendingSweepLogs.length} unclosed log(s). Updating...`);
 
         const batch = db.batch();
         pendingSweepLogs.forEach(log => {
           const docRef = db.collection('attendance_logs').doc(log.id);
           batch.update(docRef, {
             status: 'OUT',
-            checkOutTime: '09:00 PM',
-            autoCheckedOut: true,
+            checkOutTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            checkedOutBy: 'auto_sweep',
+            checkoutReason: 'Scheduled Sweep',
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         });
 
         try {
           await batch.commit();
-          console.log(`Successfully auto-checked out ${pendingSweepLogs.length} unclosed student session(s).`);
         } catch (err) {
           console.error("Error executing automated check-out sweep:", err);
         }
       }
 
-      // Fetch Live Attendance Logs
-      function listenToLogs() {
-        if (unsubscribeLogs) unsubscribeLogs();
-
-        unsubscribeLogs = db.collection('attendance_logs')
-          .orderBy('createdAt', 'desc')
-          .limit(500)
-          .onSnapshot((snapshot) => {
-            rawLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            // Execute automated background sweep for unclosed sessions past 9:00 PM / past days
-            runAutoCheckoutSweep(rawLogs);
-
-            updateMetrics(rawLogs);
-            renderLogsTable();
-          }, (err) => {
-            console.error("Error listening to logs:", err);
-          });
-      }
-
-      // Update Top Metrics Cards
       function updateMetrics(logs) {
-        const todayStr = new Date().toISOString().slice(0, 10);
-        
-        const currentlyIn = logs.filter(l => l.status === 'IN').length;
-        const todayLogs = logs.filter(l => l.date === todayStr).length;
+        const activePCs = logs.filter(l => l.status === 'IN' && l.purpose === 'PC').length;
+        const activeTables = logs.filter(l => l.status === 'IN' && l.purpose === 'Table').length;
+        const totalActive = logs.filter(l => l.status === 'IN').length;
 
-        metricCurrentIn.textContent = currentlyIn;
-        metricTodayTotal.textContent = todayLogs;
+        metricActivePcs.textContent = `${activePCs} / 10`;
+        metricActiveTables.textContent = `${activeTables} / 14`;
+        metricTotalActive.textContent = `${totalActive} / 24`;
       }
 
-      // Filter and Render Attendance Logs Table
       function renderLogsTable() {
         const query = filterSearch.value.trim().toLowerCase();
         const yearVal = filterYear.value;
         const statusVal = filterStatus.value;
+        const purposeVal = filterPurpose.value;
         const dateVal = filterDate.value;
 
         const filtered = rawLogs.filter(log => {
           const emailKey = log.email ? log.email.toLowerCase() : '';
-          
           const currentName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : log.fullName;
           const currentYear = (usersMap[emailKey] && usersMap[emailKey].yearLevel) ? usersMap[emailKey].yearLevel : log.yearLevel;
 
@@ -1137,21 +1173,17 @@
 
           const matchesYear = (yearVal === 'ALL') || (currentYear === yearVal);
           const matchesStatus = (statusVal === 'ALL') || (log.status === statusVal);
+          const matchesPurpose = (purposeVal === 'ALL') || (log.purpose === purposeVal);
           const matchesDate = !dateVal || (log.date === dateVal);
           
           log._displayName = currentName;
           log._displayYear = currentYear;
 
-          return matchesSearch && matchesYear && matchesStatus && matchesDate;
+          return matchesSearch && matchesYear && matchesStatus && matchesPurpose && matchesDate;
         });
 
         if (filtered.length === 0) {
-          logsTableBody.innerHTML = `
-            <tr>
-              <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
-                No matching log records found.
-              </td>
-            </tr>`;
+          logsTableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">No matching log records found.</td></tr>`;
           return;
         }
 
@@ -1159,7 +1191,11 @@
           const isIn = log.status === 'IN';
           const statusBadge = isIn
             ? `<span class="badge-status badge-in"><span class="status-dot-sm"></span>IN LAB</span>`
-            : `<span class="badge-status badge-out"><span class="status-dot-sm"></span>OUT${log.autoCheckedOut ? ' (AUTO)' : ''}</span>`;
+            : `<span class="badge-status badge-out"><span class="status-dot-sm"></span>OUT${log.checkedOutBy === 'auto_sweep' ? ' (AUTO)' : ''}</span>`;
+          
+          const purposeBadge = log.purpose === 'PC' 
+            ? `<span class="badge-status badge-pc">💻 PC</span>` 
+            : (log.purpose === 'Table' ? `<span class="badge-status badge-table">🪑 Table</span>` : '—');
 
           return `
             <tr>
@@ -1167,6 +1203,7 @@
               <td><strong>${log._displayName || 'Student'}</strong></td>
               <td>${log.email || '—'}</td>
               <td>${log._displayYear || '—'}</td>
+              <td>${purposeBadge}</td>
               <td>${log.checkInTime || '—'}</td>
               <td>${log.checkOutTime || '—'}</td>
               <td>${statusBadge}</td>
@@ -1175,7 +1212,6 @@
         }).join('');
       }
 
-      // Filter and Render Registered Students Directory Table
       function renderStudentsTable() {
         const query = filterStudentSearch.value.trim().toLowerCase();
         const yearVal = filterStudentYear.value;
@@ -1188,28 +1224,18 @@
           return matchesSearch && matchesYear;
         });
 
-        // Sort by Year Level ascending (1st Year -> 5th Year), then alphabetically by Last Name
         filtered.sort((a, b) => {
           const rankA = getYearRank(a.yearLevel);
           const rankB = getYearRank(b.yearLevel);
-          if (rankA !== rankB) {
-            return rankA - rankB;
-          }
+          if (rankA !== rankB) return rankA - rankB;
           const lastNameA = getLastName(a.fullName);
           const lastNameB = getLastName(b.fullName);
-          if (lastNameA !== lastNameB) {
-            return lastNameA.localeCompare(lastNameB);
-          }
+          if (lastNameA !== lastNameB) return lastNameA.localeCompare(lastNameB);
           return (a.fullName || '').localeCompare(b.fullName || '');
         });
 
         if (filtered.length === 0) {
-          studentsTableBody.innerHTML = `
-            <tr>
-              <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">
-                No registered students found.
-              </td>
-            </tr>`;
+          studentsTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">No registered students found.</td></tr>`;
           return;
         }
 
@@ -1222,7 +1248,7 @@
               <td style="text-align: right;">
                 <div class="action-btn-group" style="justify-content: flex-end;">
                   <button class="btn-action-edit" onclick="openEditStudentModal('${user.id}')">✏️ Edit</button>
-                  <button class="btn-action-kick" onclick="kickOutStudent('${user.id}', '${escapeQuotes(user.fullName)}', '${escapeQuotes(user.email)}')">🚫 Kick Out</button>
+                  <button class="btn-action-danger" onclick="kickOutStudent('${user.id}', '${escapeQuotes(user.fullName)}', '${escapeQuotes(user.email)}')">🚫 Kick Out</button>
                 </div>
               </td>
             </tr>
@@ -1230,16 +1256,122 @@
         }).join('');
       }
 
-      // Helper to escape quotes safely for string parameters
+      function renderSchedulesTable() {
+        if (!globalSchedules || globalSchedules.length === 0) {
+          schedulesTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">No recurring classes scheduled.</td></tr>`;
+          return;
+        }
+
+        // Sort schedules by Day, then Start Time
+        const daysOrder = { 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 7 };
+        const sorted = [...globalSchedules].sort((a, b) => {
+          if (daysOrder[a.day] !== daysOrder[b.day]) return daysOrder[a.day] - daysOrder[b.day];
+          return a.startTime.localeCompare(b.startTime);
+        });
+
+        schedulesTableBody.innerHTML = sorted.map(sched => {
+          return `
+            <tr>
+              <td><strong>${sched.day}</strong></td>
+              <td>${sched.courseName}</td>
+              <td>${formatTimeHHMM(sched.startTime)}</td>
+              <td>${formatTimeHHMM(sched.endTime)}</td>
+              <td style="text-align: right;">
+                <div class="action-btn-group" style="justify-content: flex-end;">
+                  <button class="btn-action-edit" onclick="openScheduleModal('${sched.id}')">✏️ Edit</button>
+                  <button class="btn-action-danger" onclick="deleteSchedule('${sched.id}')">🗑️ Delete</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      function formatTimeHHMM(timeStr) {
+        if (!timeStr) return '';
+        const [h, m] = timeStr.split(':');
+        let hours = parseInt(h);
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        return `${hours.toString().padStart(2, '0')}:${m} ${ampm}`;
+      }
+
       function escapeQuotes(str) {
         return (str || '').replace(/'/g, "\\'");
       }
 
-      // Global window functions for table action inline clicks
+      // Schedule Manager Helpers
+      window.openScheduleModal = function(id = null) {
+        const modal = document.getElementById('schedule-modal-root');
+        if (id) {
+          const sched = globalSchedules.find(s => s.id === id);
+          if (sched) {
+            document.getElementById('schedule-id').value = sched.id;
+            document.getElementById('schedule-course').value = sched.courseName;
+            document.getElementById('schedule-day').value = sched.day;
+            document.getElementById('schedule-start').value = sched.startTime;
+            document.getElementById('schedule-end').value = sched.endTime;
+          }
+        } else {
+          document.getElementById('schedule-id').value = '';
+          document.getElementById('schedule-form').reset();
+        }
+        modal.classList.add('active');
+      };
+
+      document.getElementById('btn-add-schedule').addEventListener('click', () => {
+        openScheduleModal();
+      });
+
+      document.getElementById('schedule-cancel').addEventListener('click', () => {
+        document.getElementById('schedule-modal-root').classList.remove('active');
+      });
+
+      document.getElementById('schedule-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('schedule-id').value || `sched_${Date.now()}`;
+        const courseName = document.getElementById('schedule-course').value.trim();
+        const day = document.getElementById('schedule-day').value;
+        const startTime = document.getElementById('schedule-start').value;
+        const endTime = document.getElementById('schedule-end').value;
+
+        const newSchedule = { id, courseName, day, startTime, endTime };
+        const otherSchedules = globalSchedules.filter(s => s.id !== id);
+        const updatedSchedules = [...otherSchedules, newSchedule];
+
+        try {
+          await db.collection('settings').doc('labConfig').set({ schedules: updatedSchedules }, { merge: true });
+          document.getElementById('schedule-modal-root').classList.remove('active');
+          await showModal({ type: 'alert', title: 'Schedule Saved', icon: '✅', message: `Class schedule for ${courseName} successfully saved.` });
+        } catch (err) {
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: "Failed to save schedule: " + err.message });
+        }
+      });
+
+      window.deleteSchedule = async function(id) {
+        const confirmDel = await showModal({
+          type: 'confirm',
+          title: 'Delete Schedule',
+          icon: '⚠️',
+          message: `Are you sure you want to remove this recurring class?`,
+          confirmText: 'Delete',
+          isDanger: true
+        });
+
+        if (!confirmDel) return;
+
+        const updatedSchedules = globalSchedules.filter(s => s.id !== id);
+        try {
+          await db.collection('settings').doc('labConfig').set({ schedules: updatedSchedules }, { merge: true });
+        } catch (err) {
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to delete schedule: ' + err.message });
+        }
+      };
+
+      // Student Edit Functions
       window.openEditStudentModal = function(userId) {
         const user = rawUsers.find(u => u.id === userId);
         if (!user) return;
-
         document.getElementById('edit-student-id').value = user.id;
         document.getElementById('edit-student-name').value = user.fullName || '';
         document.getElementById('edit-student-email').value = user.email || '';
@@ -1252,7 +1384,7 @@
           type: 'confirm',
           title: 'Kick Out Student',
           icon: '⚠️',
-          message: `Are you sure you want to kick out/remove ${fullName || email} from the registered EE students database?`,
+          message: `Are you sure you want to kick out/remove ${fullName || email} from the registered database?`,
           confirmText: 'Kick Out',
           isDanger: true
         });
@@ -1261,28 +1393,16 @@
 
         try {
           await db.collection('users').doc(userId).delete();
-          await showModal({
-            type: 'alert',
-            title: 'Student Removed',
-            icon: '✅',
-            message: `${fullName || email} has been kicked out and removed from registered students.`
-          });
+          await showModal({ type: 'alert', title: 'Student Removed', icon: '✅', message: `${fullName || email} removed.` });
         } catch (err) {
-          await showModal({
-            type: 'alert',
-            title: 'Error',
-            icon: '❌',
-            message: 'Failed to delete student: ' + err.message
-          });
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to delete student: ' + err.message });
         }
       };
 
-      // Edit Student Modal Cancel Button Listener
       document.getElementById('edit-student-cancel').addEventListener('click', () => {
         document.getElementById('edit-student-modal-root').classList.remove('active');
       });
 
-      // Edit Student Form Submit Listener
       document.getElementById('edit-student-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const userId = document.getElementById('edit-student-id').value;
@@ -1291,31 +1411,16 @@
         const yearLevel = document.getElementById('edit-student-year').value;
 
         try {
-          await db.collection('users').doc(userId).update({
-            fullName: fullName,
-            email: email,
-            yearLevel: yearLevel
-          });
-
+          await db.collection('users').doc(userId).update({ fullName, email, yearLevel });
           document.getElementById('edit-student-modal-root').classList.remove('active');
-          await showModal({
-            type: 'alert',
-            title: 'Profile Updated',
-            icon: '✅',
-            message: `Student record for ${fullName} has been successfully updated!`
-          });
+          await showModal({ type: 'alert', title: 'Profile Updated', icon: '✅', message: `Student record successfully updated!` });
         } catch (err) {
-          await showModal({
-            type: 'alert',
-            title: 'Error',
-            icon: '❌',
-            message: 'Failed to update student profile: ' + err.message
-          });
+          await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to update student profile: ' + err.message });
         }
       });
 
-      // Event Listeners for Filters
-      [filterSearch, filterYear, filterStatus, filterDate].forEach(el => {
+      // Filter Listeners
+      [filterSearch, filterYear, filterStatus, filterPurpose, filterDate].forEach(el => {
         el.addEventListener('input', renderLogsTable);
         el.addEventListener('change', renderLogsTable);
       });
@@ -1325,7 +1430,7 @@
         el.addEventListener('change', renderStudentsTable);
       });
 
-      // Contextual CSV Export Handler
+      // CSV Export
       exportCsvBtn.addEventListener('click', async () => {
         if (currentTab === 'logs') {
           if (!rawLogs || rawLogs.length === 0) {
@@ -1333,7 +1438,7 @@
             return;
           }
 
-          const headers = ["Date", "Full Name", "Email", "Year Level", "Check-In Time", "Check-Out Time", "Status"];
+          const headers = ["Date", "Full Name", "Email", "Year Level", "Purpose", "Check-In Time", "Check-Out Time", "Status", "Action By", "Reason"];
           const rows = rawLogs.map(log => {
             const emailKey = log.email ? log.email.toLowerCase() : '';
             const currentName = (usersMap[emailKey] && usersMap[emailKey].fullName) ? usersMap[emailKey].fullName : (log.fullName || '');
@@ -1344,20 +1449,22 @@
               `"${currentName}"`,
               `"${log.email || ''}"`,
               `"${currentYear}"`,
+              `"${log.purpose || ''}"`,
               `"${log.checkInTime || ''}"`,
               `"${log.checkOutTime || ''}"`,
-              `"${log.status || ''}"`
+              `"${log.status || ''}"`,
+              `"${log.checkedOutBy || 'student'}"`,
+              `"${log.checkoutReason || ''}"`
             ];
           });
 
           downloadCsv(`FUSEE_Lab_Logs_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
-        } else {
+        } else if (currentTab === 'students') {
           if (!rawUsers || rawUsers.length === 0) {
             await showModal({ type: 'alert', title: 'Export Failed', icon: '📉', message: "No registered students data to export." });
             return;
           }
 
-          // Sort export data by year level ascending, then by last name
           const sortedUsers = [...rawUsers].sort((a, b) => {
             const rankA = getYearRank(a.yearLevel);
             const rankB = getYearRank(b.yearLevel);
@@ -1369,21 +1476,16 @@
           });
 
           const headers = ["Full Name", "AdDU Email", "Year Level"];
-          const rows = sortedUsers.map(user => [
-            `"${user.fullName || ''}"`,
-            `"${user.email || ''}"`,
-            `"${user.yearLevel || ''}"`
-          ]);
+          const rows = sortedUsers.map(user => [ `"${user.fullName || ''}"`, `"${user.email || ''}"`, `"${user.yearLevel || ''}"` ]);
 
           downloadCsv(`FUSEE_Registered_Students_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+        } else {
+            await showModal({ type: 'alert', title: 'Notice', icon: 'ℹ️', message: "Export is only available for Logs and Student Directory." });
         }
       });
 
-      // Helper function to execute CSV downloads
       function downloadCsv(filename, headers, rows) {
-        const csvContent = "data:text/csv;charset=utf-8," 
-          + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
