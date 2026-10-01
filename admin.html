@@ -927,7 +927,7 @@
     const db = firebase.firestore();
 
     // Custom Modal System Implementation
-    function showModal({ type = 'alert', title = 'System Notification', message = '', icon = 'ℹ️', inputPlaceholder = '', confirmText = 'OK', cancelText = 'Cancel', isDanger = false }) {
+    function showModal({ type = 'alert', title = 'System Notification', message = '', icon = 'ℹ️️', inputPlaceholder = '', confirmText = 'OK', cancelText = 'Cancel', isDanger = false }) {
       return new Promise((resolve) => {
         const root = document.getElementById('custom-modal-root');
         const iconEl = document.getElementById('custom-modal-icon');
@@ -1819,8 +1819,7 @@
             { header: 'Check In', key: 'checkIn', style: { alignment: { horizontal: 'center' } } },
             { header: 'Check Out', key: 'checkOut', style: { alignment: { horizontal: 'center' } } },
             { header: 'Status', key: 'status', style: { alignment: { horizontal: 'center' } } },
-            { header: 'Action By', key: 'actionBy', style: { alignment: { horizontal: 'center' } } },
-            { header: 'Reason', key: 'reason', style: { alignment: { horizontal: 'left' } } }
+            { header: 'Action By', key: 'actionBy', style: { alignment: { horizontal: 'center' } } }
           ];
 
           // Format Header Row
@@ -1845,8 +1844,7 @@
               checkIn: log.checkInTime || '',
               checkOut: log.checkOutTime || '',
               status: log.status || '',
-              actionBy: log.checkedOutBy || 'student',
-              reason: log.checkoutReason || ''
+              actionBy: log.checkedOutBy || 'student'
             });
 
             // Alternate Row Colors
@@ -1867,7 +1865,7 @@
           });
 
           autoFitColumns(worksheet);
-          triggerDownload(workbook, `FUSEE_Lab_Logs_${new Date().toISOString().slice(0, 10)}.xlsx`);
+          triggerDownload(workbook, `FUSEE_COMPUTER-LABORATORY_LOGBOOK_RECORD.xlsx`);
 
         } else if (currentTab === 'students') {
           if (!rawUsers || rawUsers.length === 0) {
