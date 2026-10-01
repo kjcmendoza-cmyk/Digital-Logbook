@@ -27,7 +27,7 @@
   <style>
     :root {
       --bg-main: #f4f7fb;
-      --card-bg: rgba(230, 237, 253, 0.88);
+      --card-bg: rgba(230, 237, 253, 0.88); /* Matched to FUSEE logo background #e6edfd */
       --card-border: rgba(255, 255, 255, 0.7);
       
       --text-primary: #1e293b;
@@ -874,8 +874,8 @@
       margin-bottom: 12px;
       overflow-x: auto;
       padding-bottom: 4px;
-      -ms-overflow-style: none;
-      scrollbar-width: none;
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
     }
     
     .schedule-tabs::-webkit-scrollbar { 
@@ -960,21 +960,6 @@
     .course-badge {
       font-weight: 700;
       color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .badge-ongoing {
-      display: inline-block;
-      font-size: 0.65rem;
-      font-weight: 800;
-      background: #ef4444;
-      color: white;
-      padding: 2px 6px;
-      border-radius: 4px;
-      animation: pulse 2s infinite;
     }
 
     /* Small Mobile Screen Optimizations */
@@ -1435,13 +1420,12 @@
       let activeClassSession = null; // { courseName, day, startTime, endTime }
       let classSchedulesList = [];
       let activeTabDay = "";
-      let hasSweptLogs = false;
 
       let unsubscribeLogListener = null;
       let unsubscribeConfigListener = null;
       let unsubscribeOccupancyListener = null;
 
-      // Time parsing helpers
+      // 12-Hour Time Formatter function
       function formatTime12Hour(timeStr) {
         if (!timeStr) return '';
         let [hours, minutes] = timeStr.split(':');
@@ -1449,22 +1433,6 @@
         const ampm = hours >= 12 ? 'PM' : 'AM';
         hours = hours % 12 || 12;
         return `${hours}:${minutes} ${ampm}`;
-      }
-
-      function parseTime12hToMins(timeStr) {
-        if(!timeStr) return 0;
-        const parts = timeStr.split(' ');
-        if(parts.length !== 2) return 0;
-        let [hours, minutes] = parts[0].split(':').map(Number);
-        if (parts[1] === 'PM' && hours < 12) hours += 12;
-        if (parts[1] === 'AM' && hours === 12) hours = 0;
-        return hours * 60 + (minutes || 0);
-      }
-
-      function parseTime24hToMins(timeStr) {
-        if(!timeStr) return 0;
-        let [hours, minutes] = timeStr.split(':').map(Number);
-        return hours * 60 + (minutes || 0);
       }
 
       function showAlert(title, message) {
@@ -1522,6 +1490,7 @@
         const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         let today = daysMap[new Date().getDay()];
         
+        // If Sunday (closed), default view to Monday
         if (today === "Sunday") today = "Monday";
         
         activeTabDay = today;
@@ -1547,16 +1516,16 @@
         });
       });
 
-      // 1. Operating Hours Check
+      // 1. Operating Hours Check (Mon-Fri 7:30 AM - 9:00 PM | Sat 7:30 AM - 6:00 PM | Sun Closed)
       function isLabOpen() {
         const now = new Date();
-        const day = now.getDay();
+        const day = now.getDay(); // 0 = Sunday, 1 = Mon, ..., 6 = Sat
         const minutes = now.getHours() * 60 + now.getMinutes();
 
-        if (day === 0) return false;
+        if (day === 0) return false; // Sunday closed
 
-        const openTime = 7 * 60 + 30; // 7:30 AM
-        const closeTime = (day === 6) ? (18 * 60) : (21 * 60); // Sat = 6:00 PM, Mon-Fri = 9:00 PM
+        const openTime = 7 * 60 + 30; // 7:30 AM = 450 mins
+        const closeTime = (day === 6) ? (18 * 60) : (21 * 60); // Sat = 6:00 PM (1080 mins), Mon-Fri = 9:00 PM (1260 mins)
 
         return minutes >= openTime && minutes < closeTime;
       }
@@ -1564,7 +1533,7 @@
       // 2. Schedule Lockout Engine
       function evaluateActiveSchedule(scheduleArray) {
         const now = new Date();
-        const dayIdx = now.getDay();
+        const dayIdx = now.getDay(); // 0 = Sunday
 
         if (dayIdx === 0) {
           return { isSunday: true, courseName: "Sunday Lockdown" };
@@ -1580,8 +1549,11 @@
           if (!item.day || !item.startTime || !item.endTime) continue;
 
           if (item.day.toLowerCase() === todayName.toLowerCase()) {
-            const startTotal = parseTime24hToMins(item.startTime);
-            const endTotal = parseTime24hToMins(item.endTime);
+            const [startH, startM] = item.startTime.split(':').map(Number);
+            const [endH, endM] = item.endTime.split(':').map(Number);
+
+            const startTotal = startH * 60 + startM;
+            const endTotal = endH * 60 + endM;
 
             if (currentMins >= startTotal && currentMins < endTotal) {
               return {
@@ -1631,77 +1603,7 @@
         updateStatusUI();
       }
 
-      // 3. Lazy Auto-Sweep Engine (Dynamically handles left-behind check-ins)
-      async function executeLazyAutoSweep(schedules) {
-        try {
-          const activeLogsSnap = await db.collection('attendance_logs').where('status', '==', 'IN').get();
-          if (activeLogsSnap.empty) return;
-
-          const batch = db.batch();
-          let sweptCount = 0;
-          const now = new Date();
-          const currentMins = now.getHours() * 60 + now.getMinutes();
-          const currentDay = now.getDay();
-          const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-          const todayName = daysMap[currentDay];
-          const todayISO = now.toISOString().slice(0, 10);
-
-          activeLogsSnap.forEach(doc => {
-            const log = doc.data();
-            let shouldSweep = false;
-            let cutoffTimeString = 'Auto-Closed';
-            
-            const logDateStr = log.date || (log.createdAt && log.createdAt.toDate ? log.createdAt.toDate().toISOString().slice(0, 10) : "");
-            
-            if (logDateStr && logDateStr !== todayISO) {
-              // Log is from a previous day
-              shouldSweep = true;
-              cutoffTimeString = '09:00 PM'; 
-            } else {
-              // Same day log check
-              const logCheckInMins = parseTime12hToMins(log.checkInTime);
-              const closingMins = (currentDay === 6) ? 18 * 60 : 21 * 60;
-              
-              if (currentMins >= closingMins && logCheckInMins < closingMins) {
-                // Nightly closure has passed
-                shouldSweep = true;
-                cutoffTimeString = (currentDay === 6) ? "06:00 PM" : "09:00 PM";
-              } else if (schedules && schedules.length > 0) {
-                // A class started after their check-in
-                for (const sched of schedules) {
-                  if (sched.day.toLowerCase() === todayName.toLowerCase()) {
-                    const startMins = parseTime24hToMins(sched.startTime);
-                    if (currentMins >= startMins && logCheckInMins < startMins) {
-                      shouldSweep = true;
-                      cutoffTimeString = formatTime12Hour(sched.startTime);
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-
-            if (shouldSweep) {
-              batch.update(doc.ref, {
-                status: 'OUT',
-                checkedOutBy: 'auto_sweep',
-                checkOutTime: cutoffTimeString,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-              sweptCount++;
-            }
-          });
-
-          if (sweptCount > 0) {
-            await batch.commit();
-            console.log(`Lazy Auto-Sweep: Successfully checked out ${sweptCount} outdated logs.`);
-          }
-        } catch (err) {
-          console.error("Auto-sweep failed:", err);
-        }
-      }
-
-      // 4. Cooldown Helper
+      // 3. Cooldown Helper (1 Minute / 60 Seconds)
       function getRemainingCooldownSeconds() {
         const lastAction = localStorage.getItem('last_lab_action');
         if (!lastAction) return 0;
@@ -1818,7 +1720,6 @@
           currentUserProfile = null;
           currentLogId = null;
           isCheckedIn = false;
-          hasSweptLogs = false;
           hideAllViews();
           loginView.style.display = 'block';
         }
@@ -1840,12 +1741,6 @@
             }
             refreshLabBannerStatus();
             
-            // Execute initial lazy auto-sweep on load
-            if (!hasSweptLogs) {
-              hasSweptLogs = true;
-              executeLazyAutoSweep(classSchedulesList);
-            }
-
             // Re-render if timetable modal is currently open
             if (timetableModal.classList.contains('active')) {
               renderTimetable(classSchedulesList);
@@ -2203,13 +2098,6 @@
         const user = auth.currentUser;
         if (!user || !currentUserProfile) return;
 
-        // JS Guard Clause for Dual-Layer Lock
-        const isClassInSession = !!activeClassSession;
-        if(isClassInSession) {
-          showAlert("Class in Session", "Check-ins are disabled during active class hours.");
-          return;
-        }
-
         const selectedPurpose = (radioPc.checked && !radioPc.disabled) ? 'PC' : 'Table';
         closePurposeModal();
 
@@ -2306,8 +2194,7 @@
           return;
         }
 
-        const isClassInSession = !!activeClassSession;
-        if (isClassInSession) {
+        if (activeClassSession) {
           if (activeClassSession.isSunday) {
             showAlert("Sunday Lockdown", "The EE Computer Laboratory is closed on Sundays.");
           } else {
@@ -2342,8 +2229,7 @@
           actionBtn.className = 'btn btn-checkin';
 
           const open = isLabOpen();
-          const isClassInSession = !!activeClassSession;
-          if (isManuallyLocked || isClassInSession || !open) {
+          if (isManuallyLocked || activeClassSession || !open) {
             actionBtn.disabled = true;
           } else {
             actionBtn.disabled = false;
@@ -2388,16 +2274,9 @@
           const start12 = formatTime12Hour(item.startTime);
           const end12 = formatTime12Hour(item.endTime);
           const timeStr = `${start12} - ${end12}`;
-          
-          const isOngoing = activeClassSession && 
-                            activeClassSession.courseName === (item.courseName || item.subject) &&
-                            activeClassSession.startTime === item.startTime;
-                            
-          const ongoingBadge = isOngoing ? `<span class="badge-ongoing">ONGOING</span>` : '';
-
           tr.innerHTML = `
             <td class="time-badge">${timeStr}</td>
-            <td class="course-badge">${item.courseName || item.subject || 'Class Session'}${ongoingBadge}</td>
+            <td class="course-badge">${item.courseName || item.subject || 'Class Session'}</td>
           `;
           timetableBody.appendChild(tr);
         });
