@@ -79,6 +79,7 @@
       overflow-x: hidden;
     }
 
+    /* Ambient Background Accents */
     .bg-glow {
       position: fixed;
       border-radius: 50%;
@@ -111,6 +112,7 @@
       100% { transform: translate(20px, 20px); }
     }
 
+    /* Main Inner Card - Glassmorphism matched to logo color */
     .app-card {
       width: 100%;
       max-width: 440px;
@@ -124,6 +126,7 @@
       margin: auto;
     }
 
+    /* View Transitions */
     .view-container {
       animation: fadeSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
@@ -133,6 +136,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* Header & Branding */
     .app-header {
       text-align: center;
       margin-bottom: 20px;
@@ -183,6 +187,7 @@
       line-height: 1.4;
     }
 
+    /* Form Elements */
     .welcome-banner {
       margin-bottom: 20px;
       text-align: center;
@@ -241,6 +246,7 @@
       color: #cbd5e1;
     }
 
+    /* Input Error Styling */
     .form-group input.input-error,
     .form-group select.input-error {
       border-color: #ef4444 !important;
@@ -294,6 +300,7 @@
       font-size: 0.78rem;
     }
 
+    /* Lab Operating Status Banner */
     .lab-status-banner {
       display: flex;
       align-items: center;
@@ -326,6 +333,7 @@
       border: 1px solid rgba(245, 158, 11, 0.25);
     }
 
+    /* Active Class Session Red Warning Banner */
     .class-session-banner {
       display: flex;
       align-items: center;
@@ -344,6 +352,7 @@
       box-shadow: 0 4px 10px rgba(239, 68, 68, 0.08);
     }
 
+    /* Live Lab Occupancy Snapshot Cards */
     .occupancy-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -387,6 +396,7 @@
       color: #ef4444;
     }
 
+    /* Top Dashboard Controls Bar */
     .dash-top-actions {
       display: flex;
       justify-content: flex-end;
@@ -414,6 +424,7 @@
       transform: translateY(-1px);
     }
 
+    /* Dashboard Profile Section */
     .user-profile-card {
       display: flex;
       align-items: center;
@@ -518,6 +529,7 @@
       transform: scale(1.05);
     }
 
+    /* Status Card Section */
     .status-card {
       text-align: center;
       background: #ffffff;
@@ -583,6 +595,7 @@
       font-weight: 500;
     }
 
+    /* Buttons */
     .btn {
       width: 100%;
       padding: 14px;
@@ -647,6 +660,7 @@
       100% { transform: scale(0.95); opacity: 0.8; }
     }
 
+    /* Modals Base Styling */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -734,6 +748,7 @@
       background: #4f46e5;
     }
 
+    /* Purpose Selection Card Options */
     .purpose-options {
       display: flex;
       flex-direction: column;
@@ -829,6 +844,7 @@
       gap: 10px;
     }
 
+    /* Timetable Modal Tabs & Table */
     .modal-header-flex {
       display: flex;
       align-items: center;
@@ -944,20 +960,24 @@
     .course-badge {
       font-weight: 700;
       color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
     }
 
     .badge-ongoing {
-      background: #ef4444;
-      color: white;
+      display: inline-block;
       font-size: 0.65rem;
       font-weight: 800;
+      background: #ef4444;
+      color: white;
       padding: 2px 6px;
       border-radius: 4px;
-      margin-left: 8px;
-      vertical-align: middle;
-      display: inline-block;
+      animation: pulse 2s infinite;
     }
 
+    /* Small Mobile Screen Optimizations */
     @media (max-width: 480px) {
       .occupancy-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -971,16 +991,20 @@
       body {
         padding: 10px;
       }
+
       .app-card {
         padding: 20px 16px;
         border-radius: 22px;
       }
+
       .app-header h1 {
         font-size: 1.3rem;
       }
+
       .fusee-logo {
         max-width: 160px;
       }
+
       .occupancy-val {
         font-size: 0.82rem;
       }
@@ -1231,7 +1255,7 @@
         <span>🟢 Laboratory is Currently Open</span>
       </div>
 
-      <!-- Schedule Class Lockout Warning Banner -->
+      <!-- Schedule Class Lockout Warning Banner (Active when class in session / Sunday) -->
       <div id="class-session-banner" class="class-session-banner" style="display: none;">
         <span id="class-session-msg">⚠️ Check-ins disabled. Class in session: [Course Name]</span>
       </div>
@@ -1374,26 +1398,73 @@
       const scheduleTabs = document.querySelectorAll('.tab-btn');
       const scheduleTableContainer = document.getElementById('schedule-table-container');
 
-      // State variables
-      let currentUser = null;
-      let userData = null;
-      let userStatus = 'OUT'; 
-      let activeLogId = null;
-      let classSchedulesList = [];
+      // Input Form elements
+      const regNameInput = document.getElementById('reg-name');
+      const regEmailInput = document.getElementById('reg-email');
+      const regYearSelect = document.getElementById('reg-year');
+      const regPassInput = document.getElementById('reg-password');
+
+      const nameErr = document.getElementById('name-error');
+      const emailErr = document.getElementById('email-error');
+      const yearErr = document.getElementById('year-error');
+      const passErr = document.getElementById('password-error');
+
+      const loginEmailInput = document.getElementById('login-email');
+      const loginPassInput = document.getElementById('login-password');
+      const loginEmailErr = document.getElementById('login-email-error');
+      const loginPassErr = document.getElementById('login-password-error');
+
+      const resetEmailInput = document.getElementById('reset-email');
+      const resetEmailErr = document.getElementById('reset-email-error');
+
+      const editNameInput = document.getElementById('edit-name');
+      const editYearSelect = document.getElementById('edit-year');
+      const editNameErr = document.getElementById('edit-name-error');
+      const editYearErr = document.getElementById('edit-year-error');
+
+      // State tracking
+      let isCheckedIn = false;
+      let currentLogId = null;
+      let currentUserProfile = null;
+
+      let activePcCount = 0;
+      let activeTableCount = 0;
+      let activeTotalCount = 0;
+
       let isManuallyLocked = false;
-      let activeTabDay = "Monday";
-      let hasSwept = false;
+      let activeClassSession = null; // { courseName, day, startTime, endTime }
+      let classSchedulesList = [];
+      let activeTabDay = "";
+      let hasSweptLogs = false;
 
-      const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      let unsubscribeLogListener = null;
+      let unsubscribeConfigListener = null;
+      let unsubscribeOccupancyListener = null;
 
-      // Utility Functions
-      function switchView(view) {
-        signupView.style.display = 'none';
-        loginView.style.display = 'none';
-        resetPassView.style.display = 'none';
-        editProfileView.style.display = 'none';
-        dashView.style.display = 'none';
-        view.style.display = 'block';
+      // Time parsing helpers
+      function formatTime12Hour(timeStr) {
+        if (!timeStr) return '';
+        let [hours, minutes] = timeStr.split(':');
+        hours = parseInt(hours, 10);
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        return `${hours}:${minutes} ${ampm}`;
+      }
+
+      function parseTime12hToMins(timeStr) {
+        if(!timeStr) return 0;
+        const parts = timeStr.split(' ');
+        if(parts.length !== 2) return 0;
+        let [hours, minutes] = parts[0].split(':').map(Number);
+        if (parts[1] === 'PM' && hours < 12) hours += 12;
+        if (parts[1] === 'AM' && hours === 12) hours = 0;
+        return hours * 60 + (minutes || 0);
+      }
+
+      function parseTime24hToMins(timeStr) {
+        if(!timeStr) return 0;
+        let [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + (minutes || 0);
       }
 
       function showAlert(title, message) {
@@ -1406,622 +1477,944 @@
         modalOverlay.classList.remove('active');
       });
 
-      function parseTime12toMins(timeStr) {
-        if(!timeStr) return 0;
-        const [time, modifier] = timeStr.split(' ');
-        let [hours, minutes] = time.split(':').map(Number);
-        if (hours === 12) hours = 0;
-        if (modifier === 'PM') hours += 12;
-        return hours * 60 + minutes;
+      // Live validation clearing
+      const setupLiveValidation = (inputEl, errorEl) => {
+        if (!inputEl) return;
+        const clear = () => {
+          inputEl.classList.remove('input-error');
+          if (errorEl) errorEl.style.display = 'none';
+        };
+        inputEl.addEventListener('input', clear);
+        inputEl.addEventListener('change', clear);
+      };
+
+      setupLiveValidation(regNameInput, nameErr);
+      setupLiveValidation(regEmailInput, emailErr);
+      setupLiveValidation(regYearSelect, yearErr);
+      setupLiveValidation(regPassInput, passErr);
+      setupLiveValidation(loginEmailInput, loginEmailErr);
+      setupLiveValidation(loginPassInput, loginPassErr);
+      setupLiveValidation(resetEmailInput, resetEmailErr);
+      setupLiveValidation(editNameInput, editNameErr);
+      setupLiveValidation(editYearSelect, editYearErr);
+
+      function hideAllViews() {
+        signupView.style.display = 'none';
+        loginView.style.display = 'none';
+        resetPassView.style.display = 'none';
+        editProfileView.style.display = 'none';
+        dashView.style.display = 'none';
       }
 
-      function parseTime24toMins(timeStr) {
-        if(!timeStr) return 0;
-        let [hours, minutes] = timeStr.split(':').map(Number);
-        return hours * 60 + minutes;
+      function clearErrors() {
+        [regNameInput, regEmailInput, regYearSelect, regPassInput, loginEmailInput, loginPassInput, resetEmailInput, editNameInput, editYearSelect].forEach(i => i && i.classList.remove('input-error'));
+        
+        if (emailErr) emailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+        if (loginEmailErr) loginEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+        if (loginPassErr) loginPassErr.textContent = 'Password must be at least 6 characters.';
+        if (resetEmailErr) resetEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+
+        [nameErr, emailErr, yearErr, passErr, loginEmailErr, loginPassErr, resetEmailErr, editNameErr, editYearErr].forEach(e => e && (e.style.display = 'none'));
       }
 
-      function formatMinsTo12Hour(mins) {
-        let h = Math.floor(mins / 60);
-        let m = mins % 60;
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        h = h % 12;
-        h = h ? h : 12;
-        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+      // Initialize the Default Active Tab based on Current Day
+      function initTabs() {
+        const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        let today = daysMap[new Date().getDay()];
+        
+        if (today === "Sunday") today = "Monday";
+        
+        activeTabDay = today;
+        updateTabsUI();
       }
 
-      // Check current day/time active schedules
-      function evaluateActiveSchedule(schedules) {
-        const now = new Date();
-        const currentDay = daysMap[now.getDay()];
-        const currentMins = now.getHours() * 60 + now.getMinutes();
-
-        for (let sch of schedules) {
-          if (sch.day === currentDay) {
-            const startMins = parseTime24toMins(sch.startTime);
-            const endMins = parseTime24toMins(sch.endTime);
-            if (currentMins >= startMins && currentMins < endMins) {
-              return sch; 
-            }
+      function updateTabsUI() {
+        scheduleTabs.forEach(tab => {
+          if (tab.dataset.day === activeTabDay) {
+            tab.classList.add('active');
+            tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          } else {
+            tab.classList.remove('active');
           }
-        }
-        return null; 
+        });
       }
 
+      scheduleTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          activeTabDay = tab.dataset.day;
+          updateTabsUI();
+          renderTimetable(classSchedulesList);
+        });
+      });
+
+      // 1. Operating Hours Check
       function isLabOpen() {
         const now = new Date();
-        const d = now.getDay(); 
-        const m = now.getHours() * 60 + now.getMinutes();
-        
-        if (d === 0) return false; 
-        
-        if (d >= 1 && d <= 5) {
-          return m >= (7 * 60 + 30) && m < (21 * 60); 
-        }
-        
-        if (d === 6) {
-          return m >= (8 * 60) && m < (18 * 60); 
-        }
-        return false;
+        const day = now.getDay();
+        const minutes = now.getHours() * 60 + now.getMinutes();
+
+        if (day === 0) return false;
+
+        const openTime = 7 * 60 + 30; // 7:30 AM
+        const closeTime = (day === 6) ? (18 * 60) : (21 * 60); // Sat = 6:00 PM, Mon-Fri = 9:00 PM
+
+        return minutes >= openTime && minutes < closeTime;
       }
 
-      // Lazy Auto-Checkout Sweep Logic
-      async function runLazyAutoCheckout(schedules) {
-        if (hasSwept) return;
-        try {
-          const snapshot = await db.collection('attendance_logs').where('status', '==', 'IN').get();
-          if (snapshot.empty) {
-            hasSwept = true;
-            return;
-          }
-          
-          const now = new Date();
-          const currentDayNum = now.getDay();
-          const batch = db.batch();
-          let hasUpdates = false;
-          
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            const logDateStr = data.date; 
-            const [year, month, day] = logDateStr.split('-').map(Number);
-            const logDate = new Date(year, month - 1, day);
-            
-            if (logDateStr !== now.toISOString().slice(0, 10)) {
-               const logDayOfWeek = logDate.getDay();
-               let cutoffTimeStr = (logDayOfWeek === 6) ? "06:00 PM" : "09:00 PM";
-               batch.update(doc.ref, {
-                 status: 'OUT',
-                 checkOutTime: cutoffTimeStr,
-                 checkedOutBy: 'auto_sweep',
-                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-               });
-               hasUpdates = true;
-            } else {
-               const currentMins = now.getHours() * 60 + now.getMinutes();
-               const checkInMins = parseTime12toMins(data.checkInTime);
-               const todayName = daysMap[currentDayNum];
-               
-               let earliestCutoffMins = Infinity;
-               
-               schedules.forEach(sch => {
-                 if (sch.day && sch.day.toLowerCase() === todayName.toLowerCase()) {
-                   const startMins = parseTime24toMins(sch.startTime);
-                   if (startMins > checkInMins && startMins <= currentMins) {
-                     if (startMins < earliestCutoffMins) {
-                       earliestCutoffMins = startMins;
-                     }
-                   }
-                 }
-               });
-               
-               const closingMins = (currentDayNum === 6) ? 18 * 60 : 21 * 60; 
-               if (closingMins > checkInMins && closingMins <= currentMins) {
-                  if (closingMins < earliestCutoffMins) earliestCutoffMins = closingMins;
-               }
-               
-               if (earliestCutoffMins !== Infinity) {
-                 const sweepTimeStr = formatMinsTo12Hour(earliestCutoffMins);
-                 batch.update(doc.ref, {
-                   status: 'OUT',
-                   checkOutTime: sweepTimeStr,
-                   checkedOutBy: 'auto_sweep',
-                   updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                 });
-                 hasUpdates = true;
-               }
+      // 2. Schedule Lockout Engine
+      function evaluateActiveSchedule(scheduleArray) {
+        const now = new Date();
+        const dayIdx = now.getDay();
+
+        if (dayIdx === 0) {
+          return { isSunday: true, courseName: "Sunday Lockdown" };
+        }
+
+        const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const todayName = daysMap[dayIdx];
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+
+        if (!scheduleArray || !Array.isArray(scheduleArray)) return null;
+
+        for (const item of scheduleArray) {
+          if (!item.day || !item.startTime || !item.endTime) continue;
+
+          if (item.day.toLowerCase() === todayName.toLowerCase()) {
+            const startTotal = parseTime24hToMins(item.startTime);
+            const endTotal = parseTime24hToMins(item.endTime);
+
+            if (currentMins >= startTotal && currentMins < endTotal) {
+              return {
+                isSunday: false,
+                courseName: item.courseName || item.subject || 'Class Session',
+                startTime: item.startTime,
+                endTime: item.endTime
+              };
             }
-          });
-          
-          if (hasUpdates) {
-            await batch.commit();
-            console.log("Lazy auto-checkout sweep completed.");
           }
-          hasSwept = true;
-        } catch(err) {
-          console.error("Auto sweep failed:", err);
         }
+        return null;
       }
 
-      function updateStatusUI() {
-        if (!currentUser) return;
+      // Refresh Top Banner and Class Session Warning State
+      function refreshLabBannerStatus() {
+        if (!labStatusBanner) return;
 
         const open = isLabOpen();
-        const activeClassSession = evaluateActiveSchedule(classSchedulesList);
+        const scheduleState = evaluateActiveSchedule(classSchedulesList);
+        activeClassSession = scheduleState;
 
+        // Banner 1: Admin / Operating Hours Banner
         if (isManuallyLocked) {
           labStatusBanner.className = 'lab-status-banner lab-status-locked';
-          labStatusBanner.innerHTML = '<span>🔒 Admin Lock Down Active</span>';
+          labStatusBanner.innerHTML = '🔒 Check-Ins Locked by Administrator';
         } else if (open) {
           labStatusBanner.className = 'lab-status-banner lab-status-open';
-          labStatusBanner.innerHTML = '<span>🟢 Laboratory is Currently Open</span>';
+          labStatusBanner.innerHTML = '🟢 Laboratory is Currently Open';
         } else {
           labStatusBanner.className = 'lab-status-banner lab-status-closed';
-          labStatusBanner.innerHTML = '<span>🔴 Laboratory is Closed</span>';
+          labStatusBanner.innerHTML = '🔴 Laboratory is Currently Closed';
         }
 
-        if (activeClassSession) {
+        // Banner 2: Class Session / Sunday Warning Banner
+        if (scheduleState) {
           classSessionBanner.style.display = 'flex';
-          classSessionMsg.textContent = `⚠️ Check-ins disabled. Class in session: ${activeClassSession.course}`;
+          if (scheduleState.isSunday) {
+            classSessionMsg.textContent = '⚠️ Check-ins disabled. Sunday Lockdown in effect.';
+          } else {
+            classSessionMsg.textContent = `⚠️ Check-ins disabled. Class in session: ${scheduleState.courseName}`;
+          }
         } else {
           classSessionBanner.style.display = 'none';
         }
 
-        if (userStatus === 'IN') {
+        updateStatusUI();
+      }
+
+      // 3. Lazy Auto-Sweep Engine (Dynamically handles left-behind check-ins)
+      async function executeLazyAutoSweep(schedules) {
+        try {
+          const activeLogsSnap = await db.collection('attendance_logs').where('status', '==', 'IN').get();
+          if (activeLogsSnap.empty) return;
+
+          const batch = db.batch();
+          let sweptCount = 0;
+          const now = new Date();
+          const currentMins = now.getHours() * 60 + now.getMinutes();
+          const currentDay = now.getDay();
+          const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+          const todayName = daysMap[currentDay];
+          const todayISO = now.toISOString().slice(0, 10);
+
+          activeLogsSnap.forEach(doc => {
+            const log = doc.data();
+            let shouldSweep = false;
+            let cutoffTimeString = 'Auto-Closed';
+            
+            const logDateStr = log.date || (log.createdAt && log.createdAt.toDate ? log.createdAt.toDate().toISOString().slice(0, 10) : "");
+            
+            if (logDateStr && logDateStr !== todayISO) {
+              // Log is from a previous day
+              shouldSweep = true;
+              cutoffTimeString = '09:00 PM'; 
+            } else {
+              // Same day log check
+              const logCheckInMins = parseTime12hToMins(log.checkInTime);
+              const closingMins = (currentDay === 6) ? 18 * 60 : 21 * 60;
+              
+              if (currentMins >= closingMins && logCheckInMins < closingMins) {
+                // Nightly closure has passed
+                shouldSweep = true;
+                cutoffTimeString = (currentDay === 6) ? "06:00 PM" : "09:00 PM";
+              } else if (schedules && schedules.length > 0) {
+                // A class started after their check-in
+                for (const sched of schedules) {
+                  if (sched.day.toLowerCase() === todayName.toLowerCase()) {
+                    const startMins = parseTime24hToMins(sched.startTime);
+                    if (currentMins >= startMins && logCheckInMins < startMins) {
+                      shouldSweep = true;
+                      cutoffTimeString = formatTime12Hour(sched.startTime);
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+
+            if (shouldSweep) {
+              batch.update(doc.ref, {
+                status: 'OUT',
+                checkedOutBy: 'auto_sweep',
+                checkOutTime: cutoffTimeString,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              sweptCount++;
+            }
+          });
+
+          if (sweptCount > 0) {
+            await batch.commit();
+            console.log(`Lazy Auto-Sweep: Successfully checked out ${sweptCount} outdated logs.`);
+          }
+        } catch (err) {
+          console.error("Auto-sweep failed:", err);
+        }
+      }
+
+      // 4. Cooldown Helper
+      function getRemainingCooldownSeconds() {
+        const lastAction = localStorage.getItem('last_lab_action');
+        if (!lastAction) return 0;
+        const elapsed = (Date.now() - parseInt(lastAction, 10)) / 1000;
+        return elapsed < 60 ? Math.ceil(60 - elapsed) : 0;
+      }
+
+      // View Navigation Event Listeners
+      goToLogin.addEventListener('click', () => {
+        clearErrors();
+        hideAllViews();
+        loginView.style.display = 'block';
+      });
+
+      goToSignup.addEventListener('click', () => {
+        clearErrors();
+        hideAllViews();
+        signupView.style.display = 'block';
+      });
+
+      goToReset.addEventListener('click', () => {
+        clearErrors();
+        hideAllViews();
+        resetPassView.style.display = 'block';
+      });
+
+      backToLogin.addEventListener('click', () => {
+        clearErrors();
+        hideAllViews();
+        loginView.style.display = 'block';
+      });
+
+      editProfileBtn.addEventListener('click', () => {
+        if (!currentUserProfile) return;
+        clearErrors();
+        editNameInput.value = currentUserProfile.fullName || '';
+        editYearSelect.value = currentUserProfile.yearLevel || '';
+        hideAllViews();
+        editProfileView.style.display = 'block';
+      });
+
+      cancelEditProfile.addEventListener('click', () => {
+        clearErrors();
+        if (currentUserProfile) {
+          showDashboard(currentUserProfile);
+        } else {
+          hideAllViews();
+          loginView.style.display = 'block';
+        }
+      });
+
+      // Firebase Auth Observer
+      auth.onAuthStateChanged(async (user) => {
+        if (user) {
+          try {
+            const email = user.email.toLowerCase();
+            const allowedDoc = await db.collection('allowed_students').doc(email).get();
+            
+            if (!allowedDoc.exists) {
+              showAlert("Access Denied", "Access Denied: Your email is not listed in the official EE Enrolled Directory. Please contact the EE lab administrator.");
+              await auth.signOut();
+              return;
+            }
+
+            const userRef = db.collection('users').doc(user.uid);
+            const userDoc = await userRef.get();
+
+            if (userDoc.exists && userDoc.data().fullName && userDoc.data().fullName !== 'Student') {
+              currentUserProfile = userDoc.data();
+            } else {
+              let derivedName = user.displayName;
+              if (!derivedName && user.email) {
+                const emailPrefix = user.email.split('@')[0];
+                derivedName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+              }
+
+              currentUserProfile = {
+                fullName: derivedName || 'Student',
+                email: user.email,
+                yearLevel: (userDoc.exists && userDoc.data().yearLevel) ? userDoc.data().yearLevel : '1st Year',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              };
+
+              await userRef.set(currentUserProfile, { merge: true });
+            }
+
+            showDashboard(currentUserProfile);
+            listenToAttendanceStatus(user.uid);
+            listenToLabConfig();
+            listenToOccupancySnapshots();
+
+          } catch (err) {
+            console.error("Error fetching user profile:", err);
+            let derivedName = user.displayName;
+            if (!derivedName && user.email) {
+              const emailPrefix = user.email.split('@')[0];
+              derivedName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+            }
+            currentUserProfile = {
+              fullName: derivedName || 'Student',
+              email: user.email,
+              yearLevel: '1st Year'
+            };
+            showDashboard(currentUserProfile);
+            listenToAttendanceStatus(user.uid);
+            listenToLabConfig();
+            listenToOccupancySnapshots();
+          }
+        } else {
+          if (unsubscribeLogListener) { unsubscribeLogListener(); unsubscribeLogListener = null; }
+          if (unsubscribeConfigListener) { unsubscribeConfigListener(); unsubscribeConfigListener = null; }
+          if (unsubscribeOccupancyListener) { unsubscribeOccupancyListener(); unsubscribeOccupancyListener = null; }
+          
+          currentUserProfile = null;
+          currentLogId = null;
+          isCheckedIn = false;
+          hasSweptLogs = false;
+          hideAllViews();
+          loginView.style.display = 'block';
+        }
+      });
+
+      // Real-time Listener for Lab Config & Class Schedules
+      function listenToLabConfig() {
+        if (unsubscribeConfigListener) unsubscribeConfigListener();
+
+        unsubscribeConfigListener = db.collection('settings').doc('labConfig')
+          .onSnapshot((doc) => {
+            if (doc.exists) {
+              const data = doc.data();
+              isManuallyLocked = data.manualLock === true;
+              classSchedulesList = Array.isArray(data.schedules) ? data.schedules : [];
+            } else {
+              isManuallyLocked = false;
+              classSchedulesList = [];
+            }
+            refreshLabBannerStatus();
+            
+            // Execute initial lazy auto-sweep on load
+            if (!hasSweptLogs) {
+              hasSweptLogs = true;
+              executeLazyAutoSweep(classSchedulesList);
+            }
+
+            // Re-render if timetable modal is currently open
+            if (timetableModal.classList.contains('active')) {
+              renderTimetable(classSchedulesList);
+            }
+          }, (err) => {
+            console.warn("Error subscribing to lab config:", err);
+            refreshLabBannerStatus();
+          });
+      }
+
+      // Real-time Listener for Live Lab Occupancy (Active Check-Ins)
+      function listenToOccupancySnapshots() {
+        if (unsubscribeOccupancyListener) unsubscribeOccupancyListener();
+
+        unsubscribeOccupancyListener = db.collection('attendance_logs')
+          .where('status', '==', 'IN')
+          .onSnapshot((snapshot) => {
+            let pc = 0;
+            let table = 0;
+
+            snapshot.forEach((doc) => {
+              const logData = doc.data();
+              if (logData.purpose === 'PC') {
+                pc++;
+              } else {
+                table++;
+              }
+            });
+
+            activePcCount = pc;
+            activeTableCount = table;
+            activeTotalCount = pc + table;
+
+            // Update Snapshot Cards UI
+            pcCountVal.textContent = `${activePcCount} / 10`;
+            if (activePcCount >= 10) pcCountVal.classList.add('full');
+            else pcCountVal.classList.remove('full');
+
+            tableCountVal.textContent = `${activeTableCount} / 14`;
+            if (activeTableCount >= 14) tableCountVal.classList.add('full');
+            else tableCountVal.classList.remove('full');
+
+            totalCountVal.textContent = `${activeTotalCount} / 24`;
+
+            // Update modal state if open
+            syncPurposeModalState();
+
+          }, (err) => {
+            console.error("Error listening to occupancy:", err);
+          });
+      }
+
+      function listenToAttendanceStatus(uid) {
+        if (unsubscribeLogListener) unsubscribeLogListener();
+
+        unsubscribeLogListener = db.collection('attendance_logs')
+          .where('userId', '==', uid)
+          .where('status', '==', 'IN')
+          .limit(1)
+          .onSnapshot((snapshot) => {
+            if (!snapshot.empty) {
+              const doc = snapshot.docs[0];
+              const logData = doc.data();
+              currentLogId = doc.id;
+              isCheckedIn = true;
+              const stationStr = logData.purpose ? ` (${logData.purpose})` : '';
+              if (statusTime) statusTime.textContent = `Checked in at ${logData.checkInTime || ''}${stationStr}`;
+            } else {
+              isCheckedIn = false;
+              currentLogId = null;
+              if (statusTime) statusTime.textContent = 'Tap below when entering or leaving';
+            }
+            updateStatusUI();
+          }, (error) => {
+            console.error("Error listening to attendance log:", error);
+            updateStatusUI();
+          });
+      }
+
+      // Sign Up Handler
+      signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        let isValid = true;
+        const name = regNameInput.value.trim();
+        const email = regEmailInput.value.trim().toLowerCase();
+        const year = regYearSelect.value;
+        const password = regPassInput.value;
+
+        if (!name) {
+          regNameInput.classList.add('input-error');
+          nameErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!email || !email.endsWith('@addu.edu.ph')) {
+          regEmailInput.classList.add('input-error');
+          emailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+          emailErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!year) {
+          regYearSelect.classList.add('input-error');
+          yearErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!password || password.length < 6) {
+          regPassInput.classList.add('input-error');
+          passErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!isValid) return;
+
+        const submitBtn = signupForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating Account...';
+
+        try {
+          const allowedDoc = await db.collection('allowed_students').doc(email).get();
+          if (!allowedDoc.exists) {
+            showAlert("Access Denied", "Access Denied: Your email is not listed in the official EE Enrolled Directory. Please contact the EE lab administrator.");
+            if (auth.currentUser) await auth.signOut();
+            return;
+          }
+
+          const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+          await userCredential.user.updateProfile({ displayName: name });
+
+          await db.collection('users').doc(userCredential.user.uid).set({
+            fullName: name,
+            email: email,
+            yearLevel: year,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+
+          signupForm.reset();
+        } catch (error) {
+          regEmailInput.classList.add('input-error');
+          emailErr.textContent = error.message || 'Error creating account. Please try again.';
+          emailErr.style.display = 'block';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Sign Up';
+        }
+      });
+
+      // Log In Handler
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        let isValid = true;
+        const email = loginEmailInput.value.trim().toLowerCase();
+        const password = loginPassInput.value;
+
+        if (!email || !email.endsWith('@addu.edu.ph')) {
+          loginEmailInput.classList.add('input-error');
+          loginEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+          loginEmailErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!password) {
+          loginPassInput.classList.add('input-error');
+          loginPassErr.textContent = 'Please enter your password.';
+          loginPassErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!isValid) return;
+
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Logging In...';
+
+        try {
+          const allowedDoc = await db.collection('allowed_students').doc(email).get();
+          if (!allowedDoc.exists) {
+            showAlert("Access Denied", "Access Denied: Your email is not listed in the official EE Enrolled Directory. Please contact the EE lab administrator.");
+            if (auth.currentUser) await auth.signOut();
+            return;
+          }
+
+          await auth.signInWithEmailAndPassword(email, password);
+          loginForm.reset();
+        } catch (error) {
+          loginPassInput.classList.add('input-error');
+          loginPassErr.textContent = 'Invalid email or password. Please try again.';
+          loginPassErr.style.display = 'block';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Log In';
+        }
+      });
+
+      // Reset Password Handler
+      resetForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        const email = resetEmailInput.value.trim().toLowerCase();
+
+        if (!email || !email.endsWith('@addu.edu.ph')) {
+          resetEmailInput.classList.add('input-error');
+          resetEmailErr.textContent = 'Please enter a valid email ending in @addu.edu.ph';
+          resetEmailErr.style.display = 'block';
+          return;
+        }
+
+        const submitBtn = resetForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending Link...';
+
+        try {
+          await auth.sendPasswordResetEmail(email);
+          resetForm.reset();
+          showAlert("Password Reset Sent", `A password reset link has been sent to ${email}. Please check your email inbox or spam folder.`);
+          hideAllViews();
+          loginView.style.display = 'block';
+        } catch (error) {
+          resetEmailInput.classList.add('input-error');
+          resetEmailErr.textContent = error.message || 'Failed to send reset link. Please verify your email.';
+          resetEmailErr.style.display = 'block';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Send Reset Link';
+        }
+      });
+
+      // Edit Profile Handler
+      editProfileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        const newName = editNameInput.value.trim();
+        const newYear = editYearSelect.value;
+        const user = auth.currentUser;
+
+        let isValid = true;
+
+        if (!newName) {
+          editNameInput.classList.add('input-error');
+          editNameErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!newYear) {
+          editYearSelect.classList.add('input-error');
+          editYearErr.style.display = 'block';
+          isValid = false;
+        }
+
+        if (!isValid || !user) return;
+
+        const submitBtn = editProfileForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving Changes...';
+
+        try {
+          await user.updateProfile({ displayName: newName });
+
+          await db.collection('users').doc(user.uid).update({
+            fullName: newName,
+            yearLevel: newYear,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+
+          currentUserProfile.fullName = newName;
+          currentUserProfile.yearLevel = newYear;
+
+          showAlert("Success", "Profile details updated successfully!");
+          showDashboard(currentUserProfile);
+
+        } catch (err) {
+          console.error("Error updating profile:", err);
+          showAlert("Update Failed", "Could not update profile. Please try again.");
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Save Changes';
+        }
+      });
+
+      // Log Out Handler
+      logoutBtn.addEventListener('click', () => {
+        auth.signOut();
+      });
+
+      function showDashboard(userData) {
+        hideAllViews();
+        dashView.style.display = 'block';
+
+        const firstName = (userData.fullName || 'Student').split(' ')[0];
+        userGreeting.textContent = `Hello, ${firstName}!`;
+        userInfo.textContent = `${userData.yearLevel || 'Student'} • FUSEE`;
+
+        const nameParts = (userData.fullName || 'FE').split(' ').filter(p => p.length > 0);
+        let initials = 'FE';
+        if (nameParts.length >= 2) {
+          initials = `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`;
+        } else if (nameParts.length === 1) {
+          initials = nameParts[0].substring(0, 2);
+        }
+        userInitials.textContent = initials.toUpperCase();
+        refreshLabBannerStatus();
+      }
+
+      // Purpose Card Radio Sync
+      [radioPc, radioTable].forEach(radio => {
+        radio.addEventListener('change', () => {
+          if (radioPc.checked) {
+            cardPc.classList.add('selected');
+            cardTable.classList.remove('selected');
+          } else {
+            cardTable.classList.add('selected');
+            cardPc.classList.remove('selected');
+          }
+        });
+      });
+
+      function syncPurposeModalState() {
+        if (activePcCount >= 10) {
+          cardPc.classList.add('disabled');
+          radioPc.disabled = true;
+          pcFullBadge.style.display = 'inline-block';
+
+          if (radioPc.checked) {
+            radioTable.checked = true;
+            cardTable.classList.add('selected');
+            cardPc.classList.remove('selected');
+          }
+        } else {
+          cardPc.classList.remove('disabled');
+          radioPc.disabled = false;
+          pcFullBadge.style.display = 'none';
+        }
+      }
+
+      function openPurposeModal() {
+        syncPurposeModalState();
+        purposeModal.classList.add('active');
+      }
+
+      function closePurposeModal() {
+        purposeModal.classList.remove('active');
+      }
+
+      cancelPurposeBtn.addEventListener('click', closePurposeModal);
+
+      // Confirm Check-In Action with Firestore Atomic Transaction & Query
+      confirmPurposeBtn.addEventListener('click', async () => {
+        const user = auth.currentUser;
+        if (!user || !currentUserProfile) return;
+
+        // JS Guard Clause for Dual-Layer Lock
+        const isClassInSession = !!activeClassSession;
+        if(isClassInSession) {
+          showAlert("Class in Session", "Check-ins are disabled during active class hours.");
+          return;
+        }
+
+        const selectedPurpose = (radioPc.checked && !radioPc.disabled) ? 'PC' : 'Table';
+        closePurposeModal();
+
+        actionBtn.disabled = true;
+        actionBtn.textContent = 'Checking In...';
+
+        const now = new Date();
+        const todayISO = now.toISOString().slice(0, 10);
+        const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+        try {
+          // Atomic Firestore Transaction with capacity check inside the transaction block
+          await db.runTransaction(async (transaction) => {
+            if (selectedPurpose === 'PC') {
+              const activePcSnap = await db.collection('attendance_logs')
+                .where('status', '==', 'IN')
+                .where('purpose', '==', 'PC')
+                .get();
+
+              if (activePcSnap.size >= 10) {
+                throw new Error("PC Workstations just reached full capacity (10/10). Please select Study Table instead.");
+              }
+            }
+
+            const newLogRef = db.collection('attendance_logs').doc();
+            transaction.set(newLogRef, {
+              userId: user.uid,
+              fullName: currentUserProfile.fullName || 'Student',
+              email: user.email,
+              yearLevel: currentUserProfile.yearLevel || '1st Year',
+              purpose: selectedPurpose,
+              date: todayISO,
+              checkInTime: timeString,
+              checkOutTime: null,
+              status: 'IN',
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          });
+
+          localStorage.setItem('last_lab_action', Date.now().toString());
+
+        } catch (err) {
+          console.error("Check-in failed:", err);
+          showAlert("Check-In Error", err.message || "Failed to check in. Please try again.");
+          actionBtn.disabled = false;
+          actionBtn.textContent = 'CHECK IN TO LABORATORY';
+        }
+      });
+
+      // Main Action Button (Check-In or Check-Out trigger)
+      actionBtn.addEventListener('click', async () => {
+        const user = auth.currentUser;
+        if (!user || !currentUserProfile) return;
+
+        // 1. Check Cooldown
+        const remainingSeconds = getRemainingCooldownSeconds();
+        if (remainingSeconds > 0) {
+          showAlert("Cooldown Active", `Please wait ${remainingSeconds} second(s) before performing another action.`);
+          return;
+        }
+
+        // If checking out: perform directly
+        if (isCheckedIn) {
+          actionBtn.disabled = true;
+          actionBtn.textContent = 'Checking Out...';
+
+          const now = new Date();
+          const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+          try {
+            if (currentLogId) {
+              await db.collection('attendance_logs').doc(currentLogId).update({
+                checkOutTime: timeString,
+                status: 'OUT',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            }
+            localStorage.setItem('last_lab_action', Date.now().toString());
+
+          } catch (err) {
+            console.error("Error updating checkout status:", err);
+            showAlert("Error", "Failed to check out. Please try again.");
+            actionBtn.disabled = false;
+            actionBtn.textContent = 'CHECK OUT OF LABORATORY';
+          }
+          return;
+        }
+
+        // If checking in: verify locks (Admin, Schedule, Operating Hours)
+        const labOpen = isLabOpen();
+
+        if (isManuallyLocked) {
+          showAlert("Check-Ins Locked", "Check-ins are currently locked by the laboratory administrator.");
+          return;
+        }
+
+        const isClassInSession = !!activeClassSession;
+        if (isClassInSession) {
+          if (activeClassSession.isSunday) {
+            showAlert("Sunday Lockdown", "The EE Computer Laboratory is closed on Sundays.");
+          } else {
+            showAlert("Class Session Active", `Check-ins are disabled during active class sessions.\n\nActive Class: ${activeClassSession.courseName}`);
+          }
+          return;
+        }
+
+        if (!labOpen) {
+          showAlert("Laboratory Closed", "The laboratory is currently closed. Check-ins are disabled.\n\nOperating Hours:\nMon-Fri: 7:30 AM - 9:00 PM\nSaturday: 7:30 AM - 6:00 PM\nSunday: Closed");
+          return;
+        }
+
+        // All clear -> open Purpose Modal
+        openPurposeModal();
+      });
+
+      // Update Action Button State and Labels based on Lockouts
+      function updateStatusUI() {
+        actionBtn.disabled = false;
+
+        if (isCheckedIn) {
           statusIndicator.className = 'status-pill status-in';
           statusText.textContent = 'CHECKED IN';
+          actionBtn.textContent = 'CHECK OUT OF LABORATORY';
           actionBtn.className = 'btn btn-checkout';
-          actionBtn.textContent = 'Check Out Now';
           actionBtn.disabled = false;
         } else {
           statusIndicator.className = 'status-pill status-out';
           statusText.textContent = 'CHECKED OUT';
+          actionBtn.textContent = 'CHECK IN TO LABORATORY';
           actionBtn.className = 'btn btn-checkin';
-          actionBtn.textContent = 'Check In Now';
-          
-          if (isManuallyLocked || activeClassSession || !open) {
+
+          const open = isLabOpen();
+          const isClassInSession = !!activeClassSession;
+          if (isManuallyLocked || isClassInSession || !open) {
             actionBtn.disabled = true;
-            actionBtn.textContent = 'Unavailable';
           } else {
             actionBtn.disabled = false;
           }
         }
       }
 
-      setInterval(updateStatusUI, 60000); // Check status every minute
-
-      // Timetable Management
+      // Weekly Timetable Logic via Tabbed UI (Sorted Chronologically)
       function renderTimetable(schedules) {
         timetableBody.innerHTML = '';
-        const filtered = schedules.filter(s => s.day === activeTabDay).sort((a,b) => a.startTime.localeCompare(b.startTime));
         
-        const now = new Date();
-        const currentMins = now.getHours() * 60 + now.getMinutes();
-        const isToday = activeTabDay.toLowerCase() === daysMap[now.getDay()].toLowerCase();
+        // Filter based on currently active tab day
+        const filteredSchedules = (schedules || []).filter(item => 
+          item.day && item.day.toLowerCase() === activeTabDay.toLowerCase()
+        );
 
-        if (filtered.length === 0) {
-          timetableBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:var(--text-muted);">No classes scheduled for ${activeTabDay}</td></tr>`;
+        // Empty state check with single empty-state row
+        if (!filteredSchedules || filteredSchedules.length === 0) {
+          scheduleTableContainer.style.display = 'block';
+          timetableBody.innerHTML = `<tr><td colspan="2" style="text-align: center; padding: 20px; color: var(--text-secondary);">No class sessions scheduled</td></tr>`;
           return;
         }
 
-        filtered.forEach(sch => {
+        scheduleTableContainer.style.display = 'block';
+
+        const daysMap = { "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4, "friday": 5, "saturday": 6, "sunday": 7 };
+
+        // Sort chronologically by day and start time
+        const sortedSchedules = [...filteredSchedules].sort((a, b) => {
+          const dayA = daysMap[(a.day || "").toLowerCase()] || 0;
+          const dayB = daysMap[(b.day || "").toLowerCase()] || 0;
+          if (dayA !== dayB) return dayA - dayB;
+
+          const timeA = a.startTime || '00:00';
+          const timeB = b.startTime || '00:00';
+          return timeA.localeCompare(timeB);
+        });
+
+        // Render schedule lists to the table using 12-hour format function
+        sortedSchedules.forEach(item => {
           const tr = document.createElement('tr');
-          let ongoingBadge = '';
-
-          const startMins = parseTime24toMins(sch.startTime);
-          const endMins = parseTime24toMins(sch.endTime);
-
-          if (isToday && currentMins >= startMins && currentMins < endMins) {
-            ongoingBadge = `<span class="badge-ongoing">ONGOING</span>`;
-          }
-
-          let s = formatMinsTo12Hour(startMins);
-          let e = formatMinsTo12Hour(endMins);
+          const start12 = formatTime12Hour(item.startTime);
+          const end12 = formatTime12Hour(item.endTime);
+          const timeStr = `${start12} - ${end12}`;
+          
+          const isOngoing = activeClassSession && 
+                            activeClassSession.courseName === (item.courseName || item.subject) &&
+                            activeClassSession.startTime === item.startTime;
+                            
+          const ongoingBadge = isOngoing ? `<span class="badge-ongoing">ONGOING</span>` : '';
 
           tr.innerHTML = `
-            <td class="time-badge">${s} - ${e}</td>
-            <td class="course-badge">${sch.course} ${ongoingBadge}</td>
+            <td class="time-badge">${timeStr}</td>
+            <td class="course-badge">${item.courseName || item.subject || 'Class Session'}${ongoingBadge}</td>
           `;
           timetableBody.appendChild(tr);
         });
       }
 
-      scheduleTabs.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          scheduleTabs.forEach(b => b.classList.remove('active'));
-          e.target.classList.add('active');
-          activeTabDay = e.target.getAttribute('data-day');
-          renderTimetable(classSchedulesList);
-        });
-      });
-
       openTimetableBtn.addEventListener('click', () => {
-        const todayDay = daysMap[new Date().getDay()];
-        if(todayDay !== "Sunday") {
-           activeTabDay = todayDay;
-           scheduleTabs.forEach(b => {
-             if(b.getAttribute('data-day') === activeTabDay) b.classList.add('active');
-             else b.classList.remove('active');
-           });
-        }
+        initTabs(); 
         renderTimetable(classSchedulesList);
         timetableModal.classList.add('active');
       });
 
-      closeTimetableBtn.addEventListener('click', () => timetableModal.classList.remove('active'));
-      closeTimetableTop.addEventListener('click', () => timetableModal.classList.remove('active'));
-
-      function listenToLabConfig() {
-        db.collection('settings').doc('lab_config').onSnapshot(doc => {
-          if (doc.exists) {
-            const data = doc.data();
-            isManuallyLocked = data.isManuallyLocked || false;
-            classSchedulesList = data.classSchedules || [];
-            
-            runLazyAutoCheckout(classSchedulesList);
-            
-            if(timetableModal.classList.contains('active')) {
-               renderTimetable(classSchedulesList);
-            }
-            updateStatusUI();
-          }
-        });
-      }
-
-      function listenToOccupancySnapshots() {
-        const today = new Date().toISOString().slice(0, 10);
-        
-        db.collection('attendance_logs')
-          .where('date', '==', today)
-          .where('status', '==', 'IN')
-          .onSnapshot(snapshot => {
-            let pcCount = 0;
-            let tableCount = 0;
-
-            snapshot.forEach(doc => {
-              const data = doc.data();
-              if (data.purpose === 'PC') pcCount++;
-              if (data.purpose === 'Table') tableCount++;
-            });
-
-            pcCountVal.textContent = `${pcCount} / 10`;
-            tableCountVal.textContent = `${tableCount} / 14`;
-            totalCountVal.textContent = `${pcCount + tableCount} / 24`;
-
-            if (pcCount >= 10) {
-              pcCountVal.classList.add('full');
-              cardPc.classList.add('disabled');
-              cardPc.classList.remove('selected');
-              radioPc.disabled = true;
-              pcFullBadge.style.display = 'inline-block';
-              
-              if(radioPc.checked) {
-                radioTable.checked = true;
-                cardTable.classList.add('selected');
-              }
-            } else {
-              pcCountVal.classList.remove('full');
-              cardPc.classList.remove('disabled');
-              radioPc.disabled = false;
-              pcFullBadge.style.display = 'none';
-            }
-
-            if (tableCount >= 14) {
-              tableCountVal.classList.add('full');
-            } else {
-              tableCountVal.classList.remove('full');
-            }
-          });
-      }
-
-      function listenToUserLog() {
-        if (!currentUser) return;
-        const today = new Date().toISOString().slice(0, 10);
-
-        db.collection('attendance_logs')
-          .where('userId', '==', currentUser.uid)
-          .where('date', '==', today)
-          .orderBy('createdAt', 'desc')
-          .limit(1)
-          .onSnapshot(snapshot => {
-            if (!snapshot.empty) {
-              const doc = snapshot.docs[0];
-              const data = doc.data();
-              
-              if (data.status === 'IN') {
-                userStatus = 'IN';
-                activeLogId = doc.id;
-                statusTime.textContent = `Checked In at ${data.checkInTime} • ${data.purpose}`;
-              } else {
-                userStatus = 'OUT';
-                activeLogId = null;
-                statusTime.textContent = `Last active today at ${data.checkOutTime}`;
-              }
-            } else {
-              userStatus = 'OUT';
-              activeLogId = null;
-              statusTime.textContent = 'Tap below when entering or leaving';
-            }
-            updateStatusUI();
-          });
-      }
-
-      // Action Handlers
-      actionBtn.addEventListener('click', async () => {
-        if (userStatus === 'IN') {
-          try {
-            actionBtn.disabled = true;
-            actionBtn.textContent = 'Processing...';
-            
-            const now = new Date();
-            let checkOutTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
-            await db.collection('attendance_logs').doc(activeLogId).update({
-              status: 'OUT',
-              checkOutTime: checkOutTime,
-              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-          } catch (error) {
-            console.error(error);
-            showAlert("Error", "Could not check out. Please try again.");
-            actionBtn.disabled = false;
-          }
-        } else {
-          purposeModal.classList.add('active');
-        }
+      closeTimetableBtn.addEventListener('click', () => {
+        timetableModal.classList.remove('active');
       });
 
-      cardPc.addEventListener('click', () => {
-        if(cardPc.classList.contains('disabled')) return;
-        radioPc.checked = true;
-        cardPc.classList.add('selected');
-        cardTable.classList.remove('selected');
-      });
-
-      cardTable.addEventListener('click', () => {
-        radioTable.checked = true;
-        cardTable.classList.add('selected');
-        cardPc.classList.remove('selected');
-      });
-
-      cancelPurposeBtn.addEventListener('click', () => {
-        purposeModal.classList.remove('active');
-      });
-
-      confirmPurposeBtn.addEventListener('click', async () => {
-        // DUAL-LAYER LOCK JS GUARD CLAUSE
-        const isClassInSession = evaluateActiveSchedule(classSchedulesList);
-        if (isClassInSession) {
-          showAlert("Class Session Active", "Check-ins are disabled during active class sessions.");
-          return;
-        }
-
-        purposeModal.classList.remove('active');
-        const selectedPurpose = document.querySelector('input[name="checkin-purpose-radio"]:checked').value;
-        
-        try {
-          actionBtn.disabled = true;
-          actionBtn.textContent = 'Processing...';
-          
-          const now = new Date();
-          const today = now.toISOString().slice(0, 10);
-          const checkInTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-          await db.collection('attendance_logs').add({
-            userId: currentUser.uid,
-            name: userData.name,
-            email: currentUser.email,
-            yearLevel: userData.yearLevel,
-            date: today,
-            checkInTime: checkInTime,
-            checkOutTime: null,
-            purpose: selectedPurpose,
-            status: 'IN',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-
-        } catch (error) {
-          console.error(error);
-          showAlert("Error", "Could not check in. Please check your connection.");
-          actionBtn.disabled = false;
-        }
-      });
-
-      // Authentication State
-      auth.onAuthStateChanged(async (user) => {
-        if (user) {
-          currentUser = user;
-          try {
-            const doc = await db.collection('users').doc(user.uid).get();
-            if (doc.exists) {
-              userData = doc.data();
-              
-              const names = userData.name.split(' ');
-              const initials = names.length > 1 ? names[0][0] + names[names.length-1][0] : names[0].substring(0, 2);
-              userInitials.textContent = initials.toUpperCase();
-              
-              userGreeting.textContent = userData.name.split(' ')[0];
-              userInfo.textContent = userData.yearLevel;
-
-              editNameInput.value = userData.name;
-              editYearSelect.value = userData.yearLevel;
-
-              switchView(dashView);
-              listenToLabConfig();
-              listenToUserLog();
-              listenToOccupancySnapshots();
-            } else {
-              auth.signOut();
-            }
-          } catch(err) {
-            console.error(err);
-          }
-        } else {
-          currentUser = null;
-          userData = null;
-          switchView(loginView);
-        }
-      });
-
-      // UI Navigation
-      goToSignup.addEventListener('click', () => switchView(signupView));
-      goToLogin.addEventListener('click', () => switchView(loginView));
-      goToReset.addEventListener('click', () => switchView(resetPassView));
-      backToLogin.addEventListener('click', () => switchView(loginView));
-      
-      editProfileBtn.addEventListener('click', () => switchView(editProfileView));
-      cancelEditProfile.addEventListener('click', () => switchView(dashView));
-
-      logoutBtn.addEventListener('click', () => {
-        auth.signOut();
-      });
-
-      // Forms
-      signupForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.error-msg').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
-        
-        let valid = true;
-        
-        if (!regNameInput.value.trim()) {
-          nameErr.style.display = 'block';
-          regNameInput.classList.add('input-error');
-          valid = false;
-        }
-        
-        if (!regEmailInput.value.trim().endsWith('@addu.edu.ph')) {
-          emailErr.style.display = 'block';
-          regEmailInput.classList.add('input-error');
-          valid = false;
-        }
-
-        if (!regYearSelect.value) {
-          yearErr.style.display = 'block';
-          regYearSelect.classList.add('input-error');
-          valid = false;
-        }
-
-        if (regPassInput.value.length < 6) {
-          passErr.style.display = 'block';
-          regPassInput.classList.add('input-error');
-          valid = false;
-        }
-
-        if (!valid) return;
-
-        try {
-          const userCred = await auth.createUserWithEmailAndPassword(regEmailInput.value.trim(), regPassInput.value);
-          await db.collection('users').doc(userCred.user.uid).set({
-            name: regNameInput.value.trim(),
-            email: regEmailInput.value.trim(),
-            yearLevel: regYearSelect.value,
-            role: 'student',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        } catch (err) {
-          showAlert("Sign Up Error", err.message);
-        }
-      });
-
-      loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.error-msg').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
-        
-        let valid = true;
-
-        if (!loginEmailInput.value.trim().endsWith('@addu.edu.ph')) {
-          loginEmailErr.style.display = 'block';
-          loginEmailInput.classList.add('input-error');
-          valid = false;
-        }
-
-        if (loginPassInput.value.length < 6) {
-          loginPassErr.style.display = 'block';
-          loginPassInput.classList.add('input-error');
-          valid = false;
-        }
-
-        if(!valid) return;
-
-        try {
-          await auth.signInWithEmailAndPassword(loginEmailInput.value.trim(), loginPassInput.value);
-        } catch (err) {
-          showAlert("Login Error", "Invalid credentials or account does not exist.");
-        }
-      });
-
-      resetForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        resetEmailErr.style.display = 'none';
-        resetEmailInput.classList.remove('input-error');
-        
-        if (!resetEmailInput.value.trim().endsWith('@addu.edu.ph')) {
-          resetEmailErr.style.display = 'block';
-          resetEmailInput.classList.add('input-error');
-          return;
-        }
-
-        try {
-          await auth.sendPasswordResetEmail(resetEmailInput.value.trim());
-          showAlert("Link Sent", "Check your student email for the reset link.");
-          switchView(loginView);
-        } catch (err) {
-          showAlert("Error", err.message);
-        }
-      });
-
-      editProfileForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        editNameErr.style.display = 'none';
-        editYearErr.style.display = 'none';
-        editNameInput.classList.remove('input-error');
-        editYearSelect.classList.remove('input-error');
-
-        let valid = true;
-
-        if (!editNameInput.value.trim()) {
-          editNameErr.style.display = 'block';
-          editNameInput.classList.add('input-error');
-          valid = false;
-        }
-
-        if (!editYearSelect.value) {
-          editYearErr.style.display = 'block';
-          editYearSelect.classList.add('input-error');
-          valid = false;
-        }
-
-        if (!valid) return;
-
-        try {
-          await db.collection('users').doc(currentUser.uid).update({
-            name: editNameInput.value.trim(),
-            yearLevel: editYearSelect.value
-          });
-
-          // Also update active session if currently checked in
-          if (userStatus === 'IN' && activeLogId) {
-             await db.collection('attendance_logs').doc(activeLogId).update({
-               name: editNameInput.value.trim(),
-               yearLevel: editYearSelect.value
-             });
-          }
-
-          userData.name = editNameInput.value.trim();
-          userData.yearLevel = editYearSelect.value;
-          
-          userGreeting.textContent = userData.name.split(' ')[0];
-          userInfo.textContent = userData.yearLevel;
-          const names = userData.name.split(' ');
-          userInitials.textContent = names.length > 1 ? (names[0][0] + names[names.length-1][0]).toUpperCase() : names[0].substring(0, 2).toUpperCase();
-
-          showAlert("Success", "Profile updated successfully.");
-          switchView(dashView);
-        } catch (err) {
-          showAlert("Error", err.message);
-        }
+      closeTimetableTop.addEventListener('click', () => {
+        timetableModal.classList.remove('active');
       });
     });
   </script>
