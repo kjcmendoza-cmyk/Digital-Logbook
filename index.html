@@ -27,7 +27,7 @@
   <style>
     :root {
       --bg-main: #f4f7fb;
-      --card-bg: rgba(230, 237, 253, 0.88); /* Matched to FUSEE logo background #e6edfd */
+      --card-bg: rgba(230, 237, 253, 0.88);
       --card-border: rgba(255, 255, 255, 0.7);
       
       --text-primary: #1e293b;
@@ -112,7 +112,7 @@
       100% { transform: translate(20px, 20px); }
     }
 
-    /* Main Inner Card - Glassmorphism matched to logo color */
+    /* Main Inner Card */
     .app-card {
       width: 100%;
       max-width: 440px;
@@ -246,7 +246,6 @@
       color: #cbd5e1;
     }
 
-    /* Input Error Styling */
     .form-group input.input-error,
     .form-group select.input-error {
       border-color: #ef4444 !important;
@@ -874,8 +873,8 @@
       margin-bottom: 12px;
       overflow-x: auto;
       padding-bottom: 4px;
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
     
     .schedule-tabs::-webkit-scrollbar { 
@@ -894,6 +893,7 @@
       cursor: pointer;
       transition: all 0.2s ease;
       flex-shrink: 0;
+      position: relative;
     }
 
     .tab-btn:hover {
@@ -904,6 +904,18 @@
       background: var(--brand-purple);
       color: white;
       border-color: var(--brand-purple);
+    }
+
+    /* Active Tab indicator dot */
+    .tab-indicator {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: #ef4444;
+      border-radius: 50%;
+      margin-left: 4px;
+      vertical-align: middle;
+      animation: pulse 2s infinite;
     }
 
     .table-container {
@@ -948,6 +960,26 @@
 
     .timetable tr:hover {
       background: #f1f5f9;
+    }
+
+    /* Ongoing row styles */
+    .ongoing-row {
+      background: #fef2f2 !important;
+      border-left: 3px solid #ef4444 !important;
+    }
+
+    .ongoing-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      background: #ef4444;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 12px;
+      margin-left: 8px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      vertical-align: middle;
+      animation: pulse 2s infinite;
     }
 
     .time-badge {
@@ -1443,6 +1475,19 @@
         hours = hours % 12 || 12;
         return `${hours}:${minutes} ${ampm}`;
       }
+      
+      // Helper to convert 12-hour AM/PM to 24-hour (HH:MM)
+      function convert12to24(time12) {
+        if (!time12) return null;
+        const match = time12.match(/(\d+):(\d+)\s*(AM|PM)/i);
+        if (!match) return null;
+        let hours = parseInt(match[1], 10);
+        const mins = match[2];
+        const modifier = match[3].toUpperCase();
+        if (hours === 12) hours = 0;
+        if (modifier === 'PM') hours += 12;
+        return `${hours.toString().padStart(2, '0')}:${mins}`;
+      }
 
       function showAlert(title, message) {
         modalTitle.textContent = title;
@@ -1506,7 +1551,19 @@
       }
 
       function updateTabsUI() {
+        const now = new Date();
+        const todayDay = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][now.getDay()];
+
         scheduleTabs.forEach(tab => {
+          // Clear any existing indicator first
+          const existingIndicator = tab.querySelector('.tab-indicator');
+          if (existingIndicator) existingIndicator.remove();
+
+          // Check if this tab's day is today and has an active class
+          if (tab.dataset.day.toLowerCase() === todayDay.toLowerCase() && activeClassSession) {
+             tab.innerHTML += `<span class="tab-indicator"></span>`;
+          }
+
           if (tab.dataset.day === activeTabDay) {
             tab.classList.add('active');
             tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -1536,9 +1593,23 @@
         return currentTimeStr >= labOpenTime && currentTimeStr < labCloseTime;
       }
 
-      // 2. Schedule Lockout Engine (Disabled - handled solely by banner visual states unless class logic exists)
+      // 2. Schedule Lockout Engine
       function evaluateActiveSchedule(scheduleArray) {
-        return null; // Function preserved as per original skeleton
+        if (!scheduleArray || !Array.isArray(scheduleArray)) return null;
+
+        const now = new Date();
+        const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const todayStr = daysMap[now.getDay()];
+        const currentTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+        for (const schedule of scheduleArray) {
+            if (schedule.day && schedule.day.toLowerCase() === todayStr.toLowerCase()) {
+                if (currentTimeStr >= schedule.startTime && currentTimeStr < schedule.endTime) {
+                    return schedule;
+                }
+            }
+        }
+        return null;
       }
 
       // Refresh Top Banner and Status State based on Operating Hours
@@ -1565,10 +1636,10 @@
           labStatusBanner.innerHTML = `🔴 Laboratory is Currently Closed (Hours: ${hoursText})`;
         }
 
-        // Warning Banner
+        // Warning Banner for Active Class Lockout
         if (scheduleState) {
           classSessionBanner.style.display = 'flex';
-          classSessionMsg.textContent = `⚠️ Check-ins disabled. Class in session: ${scheduleState.courseName}`;
+          classSessionMsg.textContent = `⚠️ Check-ins disabled. Class in session: ${scheduleState.courseName || scheduleState.subject}`;
         } else {
           classSessionBanner.style.display = 'none';
         }
@@ -1582,6 +1653,79 @@
         if (!lastAction) return 0;
         const elapsed = (Date.now() - parseInt(lastAction, 10)) / 1000;
         return elapsed < 60 ? Math.ceil(60 - elapsed) : 0;
+      }
+
+      // Lazy Sweep Processor (Batch Close Stale Logs)
+      async function runLazySweep(snapshot) {
+        if (snapshot.empty) return 0;
+        
+        let batch = db.batch();
+        let sweepCount = 0;
+        
+        const now = new Date();
+        const todayISO = now.toISOString().slice(0, 10);
+        const currentH = now.getHours().toString().padStart(2,'0');
+        const currentM = now.getMinutes().toString().padStart(2,'0');
+        const currentTimeStr = `${currentH}:${currentM}`;
+
+        const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const todayName = daysMap[now.getDay()];
+
+        // Grab classes strictly for today
+        const todaysClasses = (classSchedulesList || []).filter(c => c.day && c.day.toLowerCase() === todayName.toLowerCase());
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          let isStale = false;
+          let cutoffStr = null;
+
+          if (data.date && data.date !== todayISO) {
+            // Logs from past days
+            isStale = true;
+            cutoffStr = labCloseTime || "21:00"; 
+          } else {
+            // Today's log. Determine if a lockout event occurred after check-in time
+            let checkIn24 = convert12to24(data.checkInTime);
+            
+            if (checkIn24) {
+                let possibleCutoffs = [];
+                
+                // Sweep if a class started *after* check-in, but *before/equal* to now
+                todaysClasses.forEach(c => {
+                    if (c.startTime > checkIn24 && c.startTime <= currentTimeStr) {
+                        possibleCutoffs.push(c.startTime);
+                    }
+                });
+                
+                // Sweep if lab closed *after* check-in, but *before/equal* to now
+                if (labCloseTime && labCloseTime > checkIn24 && labCloseTime <= currentTimeStr) {
+                    possibleCutoffs.push(labCloseTime);
+                }
+
+                if (possibleCutoffs.length > 0) {
+                    // Grab the earliest trigger
+                    possibleCutoffs.sort();
+                    isStale = true;
+                    cutoffStr = possibleCutoffs[0];
+                }
+            }
+          }
+
+          if (isStale) {
+            batch.update(doc.ref, {
+              status: 'OUT',
+              checkOutTime: formatTime12Hour(cutoffStr) || "Auto-Sweep",
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+              notes: "Auto-swept due to cutoff"
+            });
+            sweepCount++;
+          }
+        });
+
+        if (sweepCount > 0) {
+          await batch.commit();
+        }
+        return sweepCount;
       }
 
       // View Navigation Event Listeners
@@ -1728,13 +1872,21 @@
           });
       }
 
-      // Real-time Listener for Live Lab Occupancy (Active Check-Ins)
+      // Real-time Listener for Live Lab Occupancy with Lazy Sweep execution
       function listenToOccupancySnapshots() {
         if (unsubscribeOccupancyListener) unsubscribeOccupancyListener();
 
         unsubscribeOccupancyListener = db.collection('attendance_logs')
           .where('status', '==', 'IN')
-          .onSnapshot((snapshot) => {
+          .onSnapshot(async (snapshot) => {
+            
+            // Execute lazy sweep first
+            const sweptCount = await runLazySweep(snapshot);
+            
+            // Wait for the next clean snapshot event triggered by the batch writes above 
+            if (sweptCount > 0) return; 
+
+            // Recalculate counters only after sweeping successfully finishes
             let pc = 0;
             let table = 0;
 
@@ -2163,10 +2315,20 @@
           return;
         }
 
-        // If checking in: verify manual locks
-        if (isManuallyLocked) {
-          showAlert("Check-Ins Locked", "Check-ins are currently locked by the laboratory administrator.");
-          return;
+        // DUAL-LAYER LOCK: Prevent opening modal if conditions aren't met
+        if (!isCheckedIn) {
+          if (isManuallyLocked) {
+            showAlert("Check-Ins Locked", "Check-ins are currently locked by the laboratory administrator.");
+            return;
+          }
+          if (activeClassSession) {
+            showAlert("Class in Session", `Check-ins disabled. Active class: ${activeClassSession.courseName || activeClassSession.subject || 'Session in Progress'}`);
+            return;
+          }
+          if (!isLabOpen()) {
+            showAlert("Laboratory Closed", "The laboratory is outside of regular operating hours.");
+            return;
+          }
         }
 
         // All clear -> open Purpose Modal
@@ -2196,7 +2358,8 @@
           actionBtn.textContent = 'CHECK IN TO LABORATORY';
           actionBtn.className = 'btn btn-checkin';
 
-          if (isManuallyLocked || !labIsOpen) {
+          // Disable button if admin locked, closed, or class in session
+          if (isManuallyLocked || !labIsOpen || activeClassSession) {
             actionBtn.disabled = true;
           } else {
             actionBtn.disabled = false;
@@ -2204,7 +2367,7 @@
         }
       }
 
-      // Weekly Timetable Logic via Tabbed UI (Sorted Chronologically)
+      // Weekly Timetable Logic via Tabbed UI (Sorted Chronologically & Highlighted)
       function renderTimetable(schedules) {
         timetableBody.innerHTML = '';
         
@@ -2234,16 +2397,33 @@
           const timeB = b.startTime || '00:00';
           return timeA.localeCompare(timeB);
         });
+        
+        const now = new Date();
+        const currentTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const todayDay = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][now.getDay()];
 
-        // Render schedule lists to table
+        // Render schedule lists to table with ongoing highlights
         sortedSchedules.forEach(item => {
           const tr = document.createElement('tr');
           const start12 = formatTime12Hour(item.startTime);
           const end12 = formatTime12Hour(item.endTime);
           const timeStr = `${start12} - ${end12}`;
+          
+          let ongoingHtml = "";
+          let rowClass = "";
+
+          // Active row evaluation
+          if (item.day && item.day.toLowerCase() === todayDay.toLowerCase()) {
+              if (currentTimeStr >= item.startTime && currentTimeStr < item.endTime) {
+                  ongoingHtml = `<span class="ongoing-badge">● ONGOING</span>`;
+                  rowClass = "ongoing-row";
+              }
+          }
+          
+          tr.className = rowClass;
           tr.innerHTML = `
             <td class="time-badge">${timeStr}</td>
-            <td class="course-badge">${item.courseName || item.subject || 'Class Session'}</td>
+            <td class="course-badge">${item.courseName || item.subject || 'Class Session'} ${ongoingHtml}</td>
           `;
           timetableBody.appendChild(tr);
         });

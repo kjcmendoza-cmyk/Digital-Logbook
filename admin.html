@@ -974,6 +974,77 @@
       return match ? parseInt(match[0], 10) : 99;
     }
 
+    // Lazy Sweep Logic to close out stale logs instantly on page load
+    async function runLazySweep(schedules, closeTime) {
+      const now = new Date();
+      const todayISO = now.toISOString().slice(0, 10);
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const dayOfWeek = now.getDay();
+      const currentHHMM = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+      
+      const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const todayName = daysMap[dayOfWeek];
+
+      let isClosingTimeTrigger = (closeTime && currentHHMM >= closeTime);
+      let isSweepTrigger = isClosingTimeTrigger;
+
+      if (schedules && !isSweepTrigger) {
+          const todayClasses = schedules.filter(s => s.day === todayName);
+          for (let c of todayClasses) {
+              if (currentHHMM >= c.startTime) {
+                  isSweepTrigger = true;
+                  break;
+              }
+          }
+      }
+
+      try {
+        const activeLogsSnapshot = await db.collection('attendance_logs').where('status', '==', 'IN').get();
+        if (activeLogsSnapshot.empty) return;
+
+        const batch = db.batch();
+        let sweepCount = 0;
+
+        activeLogsSnapshot.forEach(doc => {
+          const log = doc.data();
+          let needsSweep = false;
+          let outTime = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          let reason = '';
+
+          // 1. Stale Log from Previous Days (Backdated to 11:59 PM)
+          if (log.date && log.date < todayISO) {
+            needsSweep = true;
+            outTime = '11:59 PM'; 
+            reason = 'Overnight / Unclosed Sweep (Backdated)';
+          } 
+          // 2. Stale Log from Earlier Shift Today
+          else if (log.date === todayISO && isSweepTrigger) {
+            needsSweep = true;
+            reason = isClosingTimeTrigger ? 'Closing Time Auto-Checkout' : 'Scheduled Class Sweep';
+          }
+
+          if (needsSweep) {
+            batch.update(doc.ref, {
+              status: 'OUT',
+              checkOutTime: outTime,
+              checkedOutBy: 'auto_sweep',
+              checkoutReason: reason,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            sweepCount++;
+          }
+        });
+
+        if (sweepCount > 0) {
+          await batch.commit();
+          console.log(`[Admin] Lazy sweep completed for ${sweepCount} logs on page load.`);
+        }
+      } catch (err) {
+        console.error("Error executing lazy sweep:", err);
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       const loginScreen = document.getElementById('admin-login-screen');
       const dashboardScreen = document.getElementById('admin-dashboard-screen');
@@ -1104,18 +1175,29 @@
 
       logoutBtn.addEventListener('click', () => auth.signOut());
 
-      function initDashboard() {
+      async function initDashboard() {
+        // Pre-fetch global config once on load to determine sweeps before rendering listeners
+        try {
+          const configDoc = await db.collection('settings').doc('labConfig').get();
+          let schedules = [];
+          let closeTime = '';
+          if (configDoc.exists) {
+            const data = configDoc.data();
+            schedules = data.schedules || [];
+            closeTime = data.closeTime || '';
+          }
+          
+          // Execute exact runLazySweep to instantly backdate & close stale logs before UI binds
+          await runLazySweep(schedules, closeTime);
+        } catch (err) {
+          console.error("Failed executing initial runLazySweep:", err);
+        }
+
+        // Initialize real-time UI data streams
         listenToConfig();
         listenToUsers(); 
         listenToLogs();
         listenToWhitelist();
-        
-        // Execute background sweep evaluation every 60 seconds to catch precise class start times and close times
-        setInterval(() => {
-          if (rawLogs && rawLogs.length > 0) {
-            runAutoCheckoutSweep(rawLogs);
-          }
-        }, 60000); 
       }
 
       // Initialize Settings, Locks, Schedules & Operating Hours
@@ -1218,7 +1300,6 @@
           .limit(500)
           .onSnapshot((snapshot) => {
             rawLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            runAutoCheckoutSweep(rawLogs);
             updateMetrics(rawLogs);
             renderLogsTable();
           });
@@ -1230,71 +1311,6 @@
           rawWhitelist = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           renderWhitelistTable();
         });
-      }
-
-      // Automated Log Sweep Routine for Class Schedules and Global Operating Hours
-      async function runAutoCheckoutSweep(logs) {
-        const now = new Date();
-        const todayISO = now.toISOString().slice(0, 10);
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
-        const dayOfWeek = now.getDay(); 
-        const currentHHMM = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-        
-        let isSweepTrigger = false;
-        let isClosingTimeTrigger = false;
-
-        // Trigger auto-checkout if global closeTime is reached or passed
-        if (globalCloseTime && currentHHMM >= globalCloseTime) {
-          isSweepTrigger = true;
-          isClosingTimeTrigger = true;
-        }
-
-        // Exact class start time trigger
-        const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const todayName = daysMap[dayOfWeek];
-        if (globalSchedules) {
-            const todayClasses = globalSchedules.filter(s => s.day === todayName);
-            for (let c of todayClasses) {
-                if (currentHHMM === c.startTime) {
-                    isSweepTrigger = true;
-                    break;
-                }
-            }
-        }
-
-        const pendingSweepLogs = logs.filter(log => {
-          if (log.status !== 'IN') return false;
-          // Case A: Past Date unclosed logs
-          if (log.date && log.date < todayISO) return true;
-          // Case B: Trigger condition met for today
-          if (log.date === todayISO && isSweepTrigger) return true;
-          return false;
-        });
-
-        if (pendingSweepLogs.length === 0) return;
-
-        const batch = db.batch();
-        pendingSweepLogs.forEach(log => {
-          const docRef = db.collection('attendance_logs').doc(log.id);
-          const reason = (log.date && log.date < todayISO) 
-            ? 'Overnight / Unclosed Sweep' 
-            : (isClosingTimeTrigger ? 'Closing Time Auto-Checkout' : 'Scheduled Sweep');
-
-          batch.update(docRef, {
-            status: 'OUT',
-            checkOutTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-            checkedOutBy: 'auto_sweep',
-            checkoutReason: reason,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        });
-
-        try {
-          await batch.commit();
-        } catch (err) {
-          console.error("Error executing automated check-out sweep:", err);
-        }
       }
 
       function updateMetrics(logs) {
@@ -1434,7 +1450,7 @@
               <td>${formatTimeHHMM(sched.endTime)}</td>
               <td style="text-align: right;">
                 <div class="action-btn-group" style="justify-content: flex-end;">
-                  <button class="btn-action-edit" onclick="openScheduleModal('${sched.id}')">✏️️ Edit</button>
+                  <button class="btn-action-edit" onclick="openScheduleModal('${sched.id}')">✏ Edit</button>
                   <button class="btn-action-danger" onclick="deleteSchedule('${sched.id}')">🗑️ Delete</button>
                 </div>
               </td>
