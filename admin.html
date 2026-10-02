@@ -13,12 +13,11 @@
   <!-- Mobile Settings -->
   <meta name="theme-color" content="#ffffff">
 
-  <!-- Firebase Web SDKs (Compat version) -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <!-- Firebase App Check SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-appcheck-compat.js"></script>
+<!-- Firebase Web SDKs (Compat version) -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-appcheck-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   
   <!-- ExcelJS Library for XLSX Export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
@@ -927,14 +926,18 @@
     }
     
     // Enable debug token for local feature development
-    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    
-    // Initialize Firebase App Check
-    const appCheck = firebase.appCheck();
-    appCheck.activate(
-      '6Ld9qtstAAAAAIqMXsIH4FoEylJENlUVjOTvqlER', // Replace with your actual reCAPTCHA v3 or Enterprise site key
-      true // isTokenAutoRefreshEnabled
-    );
+self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+
+// Initialize Firebase App Check safely
+if (typeof firebase.appCheck === 'function') {
+  const appCheck = firebase.appCheck();
+  appCheck.activate(
+    '6Ld9qtstAAAAAIqMXsIH4FoEylJENlUVjOTvqlER',
+    true
+  );
+} else {
+  console.warn('Firebase App Check library is not loaded yet.');
+}
 
     const auth = firebase.auth();
     const db = firebase.firestore();
