@@ -22,8 +22,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <!-- Added Firebase App Check SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-appcheck-compat.js"></script>
 
   <!-- Custom Theme & Design System -->
   <style>
@@ -1344,13 +1342,6 @@
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
-    
-    // Initialize Firebase App Check with Debug Token for Local Development
-    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    const appCheck = firebase.appCheck();
-    // Replace 'YOUR_RECAPTCHA_V3_SITE_KEY' with your actual reCAPTCHA v3 or Enterprise site key
-    appCheck.activate('6Ld9qtstAAAAAIqMXsIH4FoEylJENlUVjOTvqlER', true);
-
     const auth = firebase.auth();
     const db = firebase.firestore();
 
