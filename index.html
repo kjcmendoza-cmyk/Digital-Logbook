@@ -22,6 +22,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <!-- Added Firebase App Check SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-appcheck-compat.js"></script>
 
   <!-- Custom Theme & Design System -->
   <style>
@@ -299,13 +301,13 @@
       font-size: 0.78rem;
     }
 
-    /* Lab Operating Status Banner */
+    /* Lab Operating Status Banner - Vertically Stacked & Center Aligned */
     .lab-status-banner {
       display: flex;
-      flex-direction: column; /* Updated to explicitly place hours on a new line below */
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: 3px;
       padding: 10px 12px;
       border-radius: var(--radius-sm);
       font-size: 0.78rem;
@@ -999,10 +1001,7 @@
     /* Small Mobile Screen Optimizations */
     @media (max-width: 480px) {
       .occupancy-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .occupancy-card:nth-child(3) {
-        grid-column: span 2;
+        grid-template-columns: repeat(3, 1fr);
       }
     }
 
@@ -1126,7 +1125,7 @@
         <img src="fusee-logo.png" alt="FUSEE Logo" class="fusee-logo">
       </div>
       
-      <div class="brand-badge">⚡ EE Computer Laboratory Portal</div>
+      <div class="brand-badge">⚡ EE COMPUTER LABORATORY PORTAL</div>
       <h1>Digital Logbook</h1>
       <p class="subtitle">Federation of United Students of Electrical Engineering</p>
     </header>
@@ -1269,10 +1268,10 @@
         </button>
       </div>
 
-      <!-- Real-time Lab Operating Status Banner -->
+      <!-- Real-time Lab Operating Status Banner (Center Aligned Vertically Stacked) -->
       <div id="lab-status-banner" class="lab-status-banner lab-status-open">
         <span>🟢 Laboratory is Currently Open</span>
-        <span style="font-size: 0.7rem; font-weight: 600; opacity: 0.9;">(Hours: Loading...)</span>
+        <span style="font-size: 0.78rem; font-weight: 600; opacity: 0.9;">(1:30 AM - 9:00 AM)</span>
       </div>
 
       <!-- Schedule Class Lockout Warning Banner -->
@@ -1345,6 +1344,13 @@
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
+    
+    // Initialize Firebase App Check with Debug Token for Local Development
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    const appCheck = firebase.appCheck();
+    // Replace 'YOUR_RECAPTCHA_V3_SITE_KEY' with your actual reCAPTCHA v3 or Enterprise site key
+    appCheck.activate('6Ld9qtstAAAAAIqMXsIH4FoEylJENlUVjOTvqlER', true);
+
     const auth = firebase.auth();
     const db = firebase.firestore();
 
@@ -1625,24 +1631,24 @@
 
         let openStr = labOpenTime ? formatTime12Hour(labOpenTime) : '';
         let closeStr = labCloseTime ? formatTime12Hour(labCloseTime) : '';
-        let hoursText = (openStr && closeStr) ? `${openStr} - ${closeStr}` : '24/7';
+        let hoursText = (openStr && closeStr) ? `(${openStr} - ${closeStr})` : '(24/7)';
 
-        // Admin / Operating Status Banner (Updated flex formatting in CSS now correctly stacks these spans)
+        // Admin / Operating Status Banner stacked vertically and center aligned
         if (isManuallyLocked) {
           labStatusBanner.className = 'lab-status-banner lab-status-locked';
           labStatusBanner.innerHTML = '<span>🔒 Check-Ins Locked by Administrator</span>';
         } else if (open) {
           labStatusBanner.className = 'lab-status-banner lab-status-open';
-          labStatusBanner.innerHTML = `<span>🟢 Laboratory is Currently Open</span><span style="font-size: 0.7rem; font-weight: 600; opacity: 0.9;">(Hours: ${hoursText})</span>`;
+          labStatusBanner.innerHTML = `<span>🟢 Laboratory is Currently Open</span><span style="font-size: 0.78rem; font-weight: 600; opacity: 0.9;">${hoursText}</span>`;
         } else {
           labStatusBanner.className = 'lab-status-banner lab-status-closed';
-          labStatusBanner.innerHTML = `<span>🔴 Laboratory is Currently Closed</span><span style="font-size: 0.7rem; font-weight: 600; opacity: 0.9;">(Hours: ${hoursText})</span>`;
+          labStatusBanner.innerHTML = `<span>🔴 Laboratory is Currently Closed</span><span style="font-size: 0.78rem; font-weight: 600; opacity: 0.9;">${hoursText}</span>`;
         }
 
         // Warning Banner for Active Class Lockout
         if (scheduleState) {
           classSessionBanner.style.display = 'flex';
-          classSessionMsg.textContent = `⚠️️ Check-ins disabled. Class in session: ${scheduleState.courseName || scheduleState.subject}`;
+          classSessionMsg.textContent = `⚠️ Check-ins disabled. Class in session: ${scheduleState.courseName || scheduleState.subject}`;
         } else {
           classSessionBanner.style.display = 'none';
         }

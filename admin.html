@@ -17,6 +17,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <!-- Firebase App Check SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-appcheck-compat.js"></script>
   
   <!-- ExcelJS Library for XLSX Export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
@@ -590,7 +592,7 @@
   <!-- Dedicated Modal for Editing Student Profiles -->
   <div id="edit-student-modal-root" class="custom-modal-overlay">
     <div class="custom-modal" style="max-width: 460px; text-align: left;">
-      <div class="custom-modal-title" style="margin-bottom: 16px; font-size: 1.2rem;">✏️ Edit Student Profile</div>
+      <div class="custom-modal-title" style="margin-bottom: 16px; font-size: 1.2rem;">✏️️ Edit Student Profile</div>
       <form id="edit-student-form">
         <input type="hidden" id="edit-student-id">
         <div style="margin-bottom: 14px;">
@@ -703,7 +705,7 @@
 
         <!-- Log Resetter Button -->
         <button id="reset-logs-btn" class="btn btn-reset">
-          🗑️ Reset All Logs
+          🗑️️ Reset All Logs
         </button>
 
         <button id="export-excel-btn" class="btn btn-export">
@@ -923,11 +925,22 @@
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
+    
+    // Enable debug token for local feature development
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    
+    // Initialize Firebase App Check
+    const appCheck = firebase.appCheck();
+    appCheck.activate(
+      '6Ld9qtstAAAAAIqMXsIH4FoEylJENlUVjOTvqlER', // Replace with your actual reCAPTCHA v3 or Enterprise site key
+      true // isTokenAutoRefreshEnabled
+    );
+
     const auth = firebase.auth();
     const db = firebase.firestore();
 
     // Custom Modal System Implementation
-    function showModal({ type = 'alert', title = 'System Notification', message = '', icon = 'ℹ️️', inputPlaceholder = '', confirmText = 'OK', cancelText = 'Cancel', isDanger = false }) {
+    function showModal({ type = 'alert', title = 'System Notification', message = '', icon = 'ℹ', inputPlaceholder = '', confirmText = 'OK', cancelText = 'Cancel', isDanger = false }) {
       return new Promise((resolve) => {
         const root = document.getElementById('custom-modal-root');
         const iconEl = document.getElementById('custom-modal-icon');
