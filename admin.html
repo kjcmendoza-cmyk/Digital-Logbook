@@ -287,91 +287,91 @@
     }
 
     table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 0.9rem;
-    }
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.82rem;
+}
 
-    /* Force table cells onto a single line */
-    th {
-      background: #f1f5f9;
-      padding: 14px 18px;
-      font-size: 0.75rem;
-      font-weight: 800;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-      white-space: nowrap;
-    }
+/* Force table cells onto a single line */
+th {
+  background: #f1f5f9;
+  padding: 10px 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  white-space: nowrap;
+}
 
-    td {
-      padding: 14px 18px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-      color: var(--text-primary);
-      font-weight: 500;
-      white-space: nowrap;
-    }
+td {
+  padding: 10px 8px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+}
 
-    tr:last-child td {
-      border-bottom: none;
-    }
+tr:last-child td {
+  border-bottom: none;
+}
 
-    tr:hover td {
-      background-color: rgba(235, 243, 254, 0.4);
-    }
+tr:hover td {
+  background-color: rgba(235, 243, 254, 0.4);
+}
 
-    /* Action Buttons */
-    .action-btn-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+/* Action Buttons */
+.action-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-    .btn-action-edit {
-      padding: 6px 12px;
-      font-size: 0.78rem;
-      background: rgba(99, 102, 241, 0.1);
-      color: var(--brand-purple-dark);
-      border: 1px solid rgba(99, 102, 241, 0.25);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      font-weight: 700;
-      transition: all 0.2s ease;
-    }
-    .btn-action-edit:hover {
-      background: var(--brand-purple);
-      color: #ffffff;
-    }
+.btn-action-edit {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--brand-purple-dark);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+.btn-action-edit:hover {
+  background: var(--brand-purple);
+  color: #ffffff;
+}
 
-    .btn-action-danger {
-      padding: 6px 12px;
-      font-size: 0.78rem;
-      background: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      font-weight: 700;
-      transition: all 0.2s ease;
-    }
-    .btn-action-danger:hover {
-      background: #ef4444;
-      color: #ffffff;
-    }
+.btn-action-danger {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+.btn-action-danger:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
 
-    /* Status Badges */
-    .badge-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 800;
-      letter-spacing: 0.4px;
-    }
+/* Status Badges */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
 
     .badge-in {
       background: rgba(16, 185, 129, 0.12);
@@ -659,6 +659,41 @@
     </div>
   </div>
 
+<!-- Dedicated Modal for Editing Attendance Logs -->
+<div id="edit-log-modal-root" class="custom-modal-overlay">
+  <div class="custom-modal" style="max-width: 460px; text-align: left;">
+    <div class="custom-modal-title" style="margin-bottom: 16px; font-size: 1.2rem;">✏️ Edit Attendance Record</div>
+    <form id="edit-log-form">
+      <input type="hidden" id="edit-log-id">
+      <div style="margin-bottom: 14px;">
+        <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">DATE</label>
+        <input type="date" id="edit-log-date" class="date-filter" style="width: 100%;" required>
+      </div>
+      <div style="display: flex; gap: 14px; margin-bottom: 14px;">
+        <div style="flex: 1;">
+          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">CHECK IN TIME</label>
+          <input type="time" id="edit-log-checkin" class="time-filter" style="width: 100%;" required>
+        </div>
+        <div style="flex: 1;">
+          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">CHECK OUT TIME</label>
+          <input type="time" id="edit-log-checkout" class="time-filter" style="width: 100%;">
+        </div>
+      </div>
+      <div style="margin-bottom: 24px;">
+        <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); display: block; margin-bottom: 6px;">STATUS</label>
+        <select id="edit-log-status" class="select-filter" style="width: 100%;" required>
+          <option value="IN">IN LAB</option>
+          <option value="OUT">OUT</option>
+        </select>
+      </div>
+      <div class="custom-modal-actions" style="justify-content: flex-end;">
+        <button type="button" id="edit-log-cancel" class="btn btn-modal-cancel">Cancel</button>
+        <button type="submit" class="btn btn-modal-confirm">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
   <!-- AUTHENTICATION SCREEN FOR ADMIN -->
   <div id="admin-login-screen" class="auth-gate">
     <h2>Admin Portal Access</h2>
@@ -784,20 +819,21 @@
         <div class="table-wrapper">
           <table>
             <thead>
-              <tr>
-                <th>Date</th>
-                <th>Student Name</th>
-                <th>AdDU Email</th>
-                <th>Year Level</th>
-                <th>Purpose</th>
-                <th>Check In</th>
-                <th>Check Out</th>
-                <th>Status</th>
-              </tr>
-            </thead>
+  <tr>
+    <th>Date</th>
+    <th>Student Name</th>
+    <th>AdDU Email</th>
+    <th>Year Level</th>
+    <th>Purpose</th>
+    <th>Check In</th>
+    <th>Check Out</th>
+    <th>Status</th>
+    <th style="text-align: right; padding-right: 28px;">Actions</th>
+  </tr>
+</thead>
             <tbody id="logs-table-body">
               <tr>
-                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading live records...</td>
+                <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading live records...</td>
               </tr>
             </tbody>
           </table>
@@ -1000,75 +1036,91 @@
     }
 
     // Lazy Sweep Logic to close out stale logs instantly on page load
-    async function runLazySweep(schedules, closeTime) {
-      const now = new Date();
-      const todayISO = now.toISOString().slice(0, 10);
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-      const dayOfWeek = now.getDay();
-      const currentHHMM = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-      
-      const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const todayName = daysMap[dayOfWeek];
+    // Helper to convert "21:00" -> "09:00 PM"
+function formatTo12Hour(timeStr) {
+  if (!timeStr) return '';
+  const [h, m] = timeStr.split(':');
+  let hours = parseInt(h, 10);
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return `${hours.toString().padStart(2, '0')}:${m} ${ampm}`;
+}
 
-      let isClosingTimeTrigger = (closeTime && currentHHMM >= closeTime);
-      let isSweepTrigger = isClosingTimeTrigger;
+// Lazy Sweep Logic to close out stale logs instantly on page load
+async function runLazySweep(schedules, closeTime) {
+  const now = new Date();
+  const todayISO = now.toISOString().slice(0, 10);
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const dayOfWeek = now.getDay();
+  const currentHHMM = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+  
+  const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const todayName = daysMap[dayOfWeek];
 
-      if (schedules && !isSweepTrigger) {
-          const todayClasses = schedules.filter(s => s.day === todayName);
-          for (let c of todayClasses) {
-              if (currentHHMM >= c.startTime) {
-                  isSweepTrigger = true;
-                  break;
-              }
+  let isClosingTimeTrigger = (closeTime && currentHHMM >= closeTime);
+  let isSweepTrigger = isClosingTimeTrigger;
+
+  if (schedules && !isSweepTrigger) {
+      const todayClasses = schedules.filter(s => s.day === todayName);
+      for (let c of todayClasses) {
+          if (currentHHMM >= c.startTime) {
+              isSweepTrigger = true;
+              break;
           }
       }
+  }
 
-      try {
-        const activeLogsSnapshot = await db.collection('attendance_logs').where('status', '==', 'IN').get();
-        if (activeLogsSnapshot.empty) return;
+  try {
+    const activeLogsSnapshot = await db.collection('attendance_logs').where('status', '==', 'IN').get();
+    if (activeLogsSnapshot.empty) return;
 
-        const batch = db.batch();
-        let sweepCount = 0;
+    const batch = db.batch();
+    let sweepCount = 0;
 
-        activeLogsSnapshot.forEach(doc => {
-          const log = doc.data();
-          let needsSweep = false;
-          let outTime = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-          let reason = '';
+    activeLogsSnapshot.forEach(doc => {
+      const log = doc.data();
+      let needsSweep = false;
+      let outTime = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      let reason = '';
 
-          // 1. Stale Log from Previous Days (Backdated to 11:59 PM)
-          if (log.date && log.date < todayISO) {
-            needsSweep = true;
-            outTime = '11:59 PM'; 
-            reason = 'Overnight / Unclosed Sweep (Backdated)';
-          } 
-          // 2. Stale Log from Earlier Shift Today
-          else if (log.date === todayISO && isSweepTrigger) {
-            needsSweep = true;
-            reason = isClosingTimeTrigger ? 'Closing Time Auto-Checkout' : 'Scheduled Class Sweep';
-          }
-
-          if (needsSweep) {
-            batch.update(doc.ref, {
-              status: 'OUT',
-              checkOutTime: outTime,
-              checkedOutBy: 'auto_sweep',
-              checkoutReason: reason,
-              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            sweepCount++;
-          }
-        });
-
-        if (sweepCount > 0) {
-          await batch.commit();
-          console.log(`[Admin] Lazy sweep completed for ${sweepCount} logs on page load.`);
+      // 1. Stale Log from Previous Days (Backdated to 11:59 PM)
+      if (log.date && log.date < todayISO) {
+        needsSweep = true;
+        outTime = '11:59 PM'; 
+        reason = 'Overnight / Unclosed Sweep (Backdated)';
+      } 
+      // 2. Stale Log from Today's Closing
+      else if (log.date === todayISO && isSweepTrigger) {
+        needsSweep = true;
+        reason = isClosingTimeTrigger ? 'Closing Time Auto-Checkout' : 'Scheduled Class Sweep';
+        
+        // If triggered by closing time, set checkOutTime to configured closeTime (e.g. "09:00 PM")
+        if (isClosingTimeTrigger && closeTime) {
+          outTime = formatTo12Hour(closeTime);
         }
-      } catch (err) {
-        console.error("Error executing lazy sweep:", err);
       }
+
+      if (needsSweep) {
+        batch.update(doc.ref, {
+          status: 'OUT',
+          checkOutTime: outTime,
+          checkedOutBy: 'auto_sweep',
+          checkoutReason: reason,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        sweepCount++;
+      }
+    });
+
+    if (sweepCount > 0) {
+      await batch.commit();
+      console.log(`[Admin] Lazy sweep completed for ${sweepCount} logs on page load.`);
     }
+  } catch (err) {
+    console.error("Error executing lazy sweep:", err);
+  }
+}
 
     document.addEventListener('DOMContentLoaded', () => {
       const loginScreen = document.getElementById('admin-login-screen');
@@ -1461,26 +1513,32 @@
 
         logsTableBody.innerHTML = filtered.map(log => {
           const isIn = log.status === 'IN';
-          const statusBadge = isIn
-            ? `<span class="badge-status badge-in"><span class="status-dot-sm"></span>IN LAB</span>`
-            : `<span class="badge-status badge-out"><span class="status-dot-sm"></span>OUT${log.checkedOutBy === 'auto_sweep' ? ' (AUTO)' : ''}</span>`;
+          // Change this line in renderLogsTable():
+const statusBadge = isIn
+  ? `<span class="badge-status badge-in"><span class="status-dot-sm"></span>IN LAB</span>`
+  : `<span class="badge-status badge-out"><span class="status-dot-sm"></span>OUT</span>`;
           
           const purposeBadge = log.purpose === 'PC' 
             ? `<span class="badge-status badge-pc">💻 PC</span>` 
             : (log.purpose === 'Table' ? `<span class="badge-status badge-table">🪑 Table</span>` : '—');
 
           return `
-            <tr>
-              <td>${log.date || '—'}</td>
-              <td><strong>${log._displayName || 'Student'}</strong></td>
-              <td>${log.email || '—'}</td>
-              <td>${log._displayYear || '—'}</td>
-              <td>${purposeBadge}</td>
-              <td>${log.checkInTime || '—'}</td>
-              <td>${log.checkOutTime || '—'}</td>
-              <td>${statusBadge}</td>
-            </tr>
-          `;
+          <tr>
+            <td>${log.date || '—'}</td>
+            <td><strong>${log._displayName || 'Student'}</strong></td>
+            <td>${log.email || '—'}</td>
+            <td>${log._displayYear || '—'}</td>
+            <td>${purposeBadge}</td>
+            <td>${log.checkInTime || '—'}</td>
+            <td>${log.checkOutTime || '—'}</td>
+            <td>${statusBadge}</td>
+            <td style="text-align: right;">
+              <div class="action-btn-group" style="justify-content: flex-end;">
+                <button class="btn-action-edit" onclick="openEditLogModal('${log.id}')">✏️ Edit</button>
+              </div>
+            </td>
+          </tr>
+        `;
         }).join('');
       }
 
