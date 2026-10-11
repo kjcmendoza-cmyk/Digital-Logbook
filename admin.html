@@ -1744,6 +1744,68 @@ const statusBadge = isIn
       };
 
       // Student Edit Functions
+      // Convert 12-hour AM/PM string to 24-hour HH:MM format for <input type="time">
+      function convert12to24(time12) {
+        if (!time12) return '';
+        // Supports HH:MM, HH:MM:SS, and special spaces from toLocaleTimeString
+        const match = time12.match(/(\d+):(\d+)(?::\d+)?[\s\u202f]*(AM|PM)/i);
+        if (!match) return '';
+        let hours = parseInt(match[1], 10);
+        const mins = match[2];
+        const modifier = match[3].toUpperCase();
+        if (hours === 12) hours = 0;
+        if (modifier === 'PM') hours += 12;
+        return `${hours.toString().padStart(2, '0')}:${mins}`;
+      }
+
+      // Open Edit Attendance Log Modal
+      window.openEditLogModal = function(logId) {
+        const log = rawLogs.find(l => l.id === logId);
+        if (!log) return;
+
+        document.getElementById('edit-log-id').value = log.id;
+        document.getElementById('edit-log-date').value = log.date || '';
+        document.getElementById('edit-log-checkin').value = convert12to24(log.checkInTime);
+        document.getElementById('edit-log-checkout').value = convert12to24(log.checkOutTime);
+        document.getElementById('edit-log-status').value = log.status || 'IN';
+
+        document.getElementById('edit-log-modal-root').classList.add('active');
+      };
+
+      // Close Log Edit Modal on Cancel
+      const editLogCancelBtn = document.getElementById('edit-log-cancel');
+      if (editLogCancelBtn) {
+        editLogCancelBtn.addEventListener('click', () => {
+          document.getElementById('edit-log-modal-root').classList.remove('active');
+        });
+      }
+
+      // Save Edited Log Record to Firestore
+      const editLogForm = document.getElementById('edit-log-form');
+      if (editLogForm) {
+        editLogForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const logId = document.getElementById('edit-log-id').value;
+          const date = document.getElementById('edit-log-date').value;
+          const checkIn24 = document.getElementById('edit-log-checkin').value;
+          const checkOut24 = document.getElementById('edit-log-checkout').value;
+          const status = document.getElementById('edit-log-status').value;
+
+          try {
+            await db.collection('attendance_logs').doc(logId).update({
+              date: date,
+              checkInTime: formatTo12Hour(checkIn24),
+              checkOutTime: checkOut24 ? formatTo12Hour(checkOut24) : null,
+              status: status,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('edit-log-modal-root').classList.remove('active');
+            await showModal({ type: 'alert', title: 'Record Updated', icon: '✅', message: 'Attendance record updated successfully.' });
+          } catch (err) {
+            await showModal({ type: 'alert', title: 'Error', icon: '❌', message: 'Failed to update record: ' + err.message });
+          }
+        });
+      }
       window.openEditStudentModal = function(userId) {
         const user = rawUsers.find(u => u.id === userId);
         if (!user) return;
